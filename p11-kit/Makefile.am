@@ -48,7 +48,7 @@ p11-kit/virtual-fixed-generated.h: Makefile
 	    counter=`expr $$counter + 1`; \
 	  done; \
 	  echo; \
-	  echo "CK_FUNCTION_LIST p11_virtual_fixed[P11_VIRTUAL_MAX_FIXED] = {"; \
+	  echo "CK_FUNCTION_LIST_3_0 p11_virtual_fixed[P11_VIRTUAL_MAX_FIXED] = {"; \
 	  counter=0; \
 	  while test $$counter -lt $(closures); do \
 	    echo "	P11_VIRTUAL_FIXED_INITIALIZER($$counter),"; \
@@ -93,7 +93,7 @@ libp11_kit_la_LDFLAGS = \
 if HAVE_LD_VERSION_SCRIPT
 libp11_kit_la_LDFLAGS += -Wl,--version-script=$(srcdir)/p11-kit/libp11-kit.map
 else
-libp11_kit_la_LDFLAGS += -export-symbols-regex '^C_GetFunctionList|^p11_kit_'
+libp11_kit_la_LDFLAGS += -export-symbols-regex '^C_GetFunctionList|^C_GetInterface|^p11_kit_'
 endif
 
 libp11_kit_la_SOURCES = \
@@ -203,7 +203,7 @@ module_LTLIBRARIES += \
 p11_kit_client_la_LDFLAGS = \
 	-no-undefined -module -avoid-version \
 	-version-info $(P11KIT_LT_RELEASE) \
-	-export-symbols-regex '^C_GetFunctionList' \
+	-export-symbols-regex '^C_GetFunctionList|^C_GetInterface' \
 	$(NULL)
 
 p11_kit_client_la_CFLAGS = $(COMMON_CFLAGS)
@@ -342,6 +342,7 @@ c_tests += \
 	test-modules \
 	test-deprecated \
 	test-proxy \
+	test-proxy3 \
 	test-iter \
 	test-rpc \
 	$(NULL)
@@ -376,6 +377,9 @@ test_progname_LDADD = $(p11_kit_LIBS)
 
 test_proxy_SOURCES = p11-kit/test-proxy.c
 test_proxy_LDADD = $(p11_kit_LIBS)
+
+test_proxy3_SOURCES = p11-kit/test-proxy3.c
+test_proxy3_LDADD = $(p11_kit_LIBS)
 
 test_rpc_SOURCES = p11-kit/test-rpc.c
 test_rpc_LDADD = $(p11_kit_LIBS)
@@ -442,6 +446,12 @@ mock_one_la_LIBADD = libp11-test.la libp11-common.la
 mock_one_la_LDFLAGS = \
 	-module -avoid-version -rpath /nowhere \
 	-no-undefined -export-symbols-regex 'C_GetFunctionList'
+
+mock_v3_one_la_SOURCES = p11-kit/mock-module-v3-ep.c
+mock_v3_one_la_LIBADD = libp11-test.la libp11-common.la
+mock_v3_one_la_LDFLAGS = \
+	-module -avoid-version -rpath /nowhere \
+	-no-undefined -export-symbols-regex 'C_GetFunctionList|C_GetInterface'
 
 mock_two_la_SOURCES = p11-kit/mock-module-ep2.c
 mock_two_la_LDFLAGS = $(mock_one_la_LDFLAGS)

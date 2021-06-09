@@ -64,6 +64,9 @@ static CK_SLOT_ID mock_slot_two_id;
 static CK_ULONG mock_slots_present;
 static CK_ULONG mock_slots_all;
 
+CK_VERSION test_version_three = {CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR};
+CK_VERSION test_version_two = {CRYPTOKI_LEGACY_VERSION_MAJOR, CRYPTOKI_LEGACY_VERSION_MINOR};
+
 static void
 test_initialize_finalize (void)
 {
@@ -72,6 +75,8 @@ test_initialize_finalize (void)
 
 	rv = C_GetFunctionList (&proxy);
 	assert (rv == CKR_OK);
+	assert (proxy->version.major == CRYPTOKI_LEGACY_VERSION_MAJOR);
+	assert (proxy->version.minor == CRYPTOKI_LEGACY_VERSION_MINOR);
 
 	assert (p11_proxy_module_check (proxy));
 
@@ -80,6 +85,84 @@ test_initialize_finalize (void)
 
 	rv = proxy->C_Finalize (NULL);
 	assert_num_eq (rv, CKR_OK);
+
+	p11_proxy_module_cleanup ();
+}
+
+static void
+test_initialize_finalize_interface (void)
+{
+	CK_INTERFACE *interface;
+	CK_FUNCTION_LIST_3_0_PTR proxy;
+	char *name = "PKCS 11";
+	CK_RV rv;
+
+	rv = C_GetInterface ((unsigned char *)name, NULL, &interface, 0);
+	assert (rv == CKR_OK);
+	assert (interface != NULL);
+	assert (strcmp(interface->pInterfaceName, name) == 0);
+	proxy = interface->pFunctionList;
+	assert (proxy->version.major == 3);
+	assert (proxy->version.minor == 0);
+
+	assert (p11_proxy_module_check ((CK_FUNCTION_LIST_PTR)proxy));
+
+	rv = proxy->C_Initialize (NULL);
+	assert (rv == CKR_OK);
+
+	rv = proxy->C_Finalize (NULL);
+	assert_num_eq (rv, CKR_OK);
+
+	p11_proxy_module_cleanup ();
+}
+
+static void
+test_interface_version (CK_INTERFACE *interface,
+                        CK_VERSION version)
+{
+	CK_FUNCTION_LIST *f = interface->pFunctionList;
+	CK_INFO info;
+	char *name = "PKCS 11";
+	int rv;
+
+	assert (strcmp(interface->pInterfaceName, name) == 0);
+	assert (f->version.major == version.major);
+	assert (f->version.minor == version.minor);
+
+	assert (p11_proxy_module_check (f));
+
+	rv = f->C_Initialize (NULL);
+	assert (rv == CKR_OK);
+
+	rv = f->C_GetInfo(&info);
+	assert (rv == CKR_OK);
+	assert_num_eq (info.cryptokiVersion.major, version.major);
+	assert_num_eq (info.cryptokiVersion.minor, version.minor);
+
+	rv = f->C_Finalize (NULL);
+	assert_num_eq (rv, CKR_OK);
+
+}
+
+static void
+test_interface_list (void)
+{
+	CK_INTERFACE *interfaces;
+	unsigned long count = 0;
+	CK_RV rv;
+
+	rv = C_GetInterfaceList (NULL, &count);
+	assert (rv == CKR_OK);
+	assert_num_eq (count, 2);
+
+	interfaces = malloc (sizeof(CK_INTERFACE) * count);
+	assert (interfaces != NULL);
+
+	rv = C_GetInterfaceList (interfaces, &count);
+	assert (rv == CKR_OK);
+
+	test_interface_version(&interfaces[0], test_version_three);
+	test_interface_version(&interfaces[1], test_version_two);
 
 	p11_proxy_module_cleanup ();
 }
@@ -492,7 +575,7 @@ teardown_mock_module (CK_FUNCTION_LIST_PTR module)
 #define MOCK_SKIP_WAIT_TEST
 
 static const CK_INFO mock_info = {
-	{ CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
+	{ CRYPTOKI_LEGACY_VERSION_MAJOR, CRYPTOKI_LEGACY_VERSION_MINOR },
 	"PKCS#11 Kit                     ",
 	0,
 	"PKCS#11 Kit Proxy Module        ",
@@ -509,6 +592,8 @@ main (int argc,
 	p11_library_init ();
 	p11_kit_be_quiet ();
 	p11_test (test_initialize_finalize, "/proxy/initialize-finalize");
+	p11_test (test_initialize_finalize_interface, "/proxy/initialize-finalize-interface");
+	p11_test (test_interface_list, "/proxy/interface-list");
 	p11_test (test_initialize_multiple, "/proxy/initialize-multiple");
 #ifndef _WIN32
 	p11_test (test_initialize_child, "/proxy/initialize-child");
@@ -521,7 +606,7 @@ main (int argc,
 	p11_test (test_slot_event, "/proxy/slot-event");
 	p11_test (test_reuse_slots, "/proxy/reuse-slots");
 
-	test_mock_add_tests ("/proxy");
+	test_mock_add_tests ("/proxy", NULL);
 
 	return p11_test_run (argc, argv);
 }

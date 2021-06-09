@@ -226,6 +226,7 @@ if get_option('test')
     'test-modules',
     'test-deprecated',
     'test-proxy',
+    'test-proxy3',
     'test-iter',
     'test-rpc',
     'test-virtual',
@@ -277,6 +278,7 @@ if get_option('test')
 
   mock_sources = {
                    'mock-one': ['mock-module-ep.c'],
+                   'mock-v3-one': ['mock-module-v3-ep.c'],
                    'mock-two': ['mock-module-ep2.c'],
                    'mock-three': ['mock-module-ep.c'],
                    'mock-four': ['mock-module-ep.c'],

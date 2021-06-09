@@ -2263,7 +2263,7 @@ p11_kit_remote_serve_tokens (const char **tokens,
 	p11_dict_iterate (filters, &filters_iter);
 	while (p11_dict_next (&filters_iter, NULL, &value)) {
 		module = p11_virtual_wrap ((p11_virtual *)value,
-					   (p11_destroyer)p11_virtual_uninit);
+		                           (p11_destroyer)p11_virtual_uninit);
 		if (module == NULL) {
 			error = EINVAL;
 			p11_message_err (error, "couldn't wrap filter module");

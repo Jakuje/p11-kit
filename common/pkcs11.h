@@ -64,6 +64,8 @@ extern "C" {
 #define CRYPTOKI_VERSION_MAJOR		3
 #define CRYPTOKI_VERSION_MINOR		0
 #define CRYPTOKI_VERSION_REVISION	0
+#define CRYPTOKI_LEGACY_VERSION_MAJOR	2
+#define CRYPTOKI_LEGACY_VERSION_MINOR	40
 #define P11_KIT_CRYPTOKI_VERSION_REVISION	0
 
 
@@ -1076,6 +1078,9 @@ struct ck_interface {
 };
 
 #define CKF_INTERFACE_FORK_SAFE	(0x00000001UL)
+
+/* Flags for message-based functions */
+#define CKF_END_OF_MESSAGE   0x00000001UL
 
 /* Forward reference.  */
 struct ck_function_list;

@@ -42,10 +42,10 @@
 
 /* p11_proxy_module_check() is defined as a weak symbol in modules.c */
 #ifndef __GNUC__
-bool       p11_proxy_module_check                    (CK_FUNCTION_LIST_PTR module);
+bool       p11_proxy_module_check                    (CK_FUNCTION_LIST_3_0_PTR module);
 
 bool
-p11_proxy_module_check (CK_FUNCTION_LIST_PTR module)
+p11_proxy_module_check (CK_FUNCTION_LIST_3_0_PTR module)
 {
 	return false;
 }
