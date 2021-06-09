@@ -282,6 +282,7 @@ if get_option('test')
                    'mock-two': ['mock-module-ep2.c'],
                    'mock-three': ['mock-module-ep.c'],
                    'mock-four': ['mock-module-ep.c'],
+                   'mock-v3-four': ['mock-module-v3-ep.c'],
                    'mock-five': ['mock-module-ep3.c'],
                    'mock-seven': ['mock-module-ep5.c'],
                    'mock-eight': ['mock-module-ep6.c'],

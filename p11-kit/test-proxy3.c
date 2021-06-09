@@ -89,7 +89,7 @@ setup_mock_module (CK_SESSION_HANDLE *session)
 	assert (rv == CKR_OK);
 	assert_num_cmp (mock_slots_all, >=, 2);
 
-	/* Assume this is the slot we want to deal with */
+	/* The first slot should be module-four-v3 accepting PKCS #11 3.0 functions */
 	mock_slot_one_id = slots[0];
 	mock_slot_two_id = slots[1];
 

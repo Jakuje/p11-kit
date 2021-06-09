@@ -93,6 +93,7 @@ typedef struct _Session {
 	CK_ATTRIBUTE_TYPE crypto_method;
 	CK_MECHANISM_TYPE crypto_mechanism;
 	CK_MECHANISM_TYPE message_method;
+	bool message_progress;
 
 	/* For sign, verify, digest, CKM_MOCK_COUNT */
 	CK_MECHANISM_TYPE hash_mechanism;
@@ -3870,6 +3871,7 @@ mock_C_SessionCancel (CK_SESSION_HANDLE session,
 	sess->finding = CK_FALSE;
 	sess->crypto_method &= ~flags;
 	sess->message_method &= ~flags;
+	sess->message_progress = false;
 	sess->crypto_mechanism = 0;
 	sess->crypto_key = 0;
 
@@ -3906,11 +3908,12 @@ mock_C_MessageEncryptInit (CK_SESSION_HANDLE session,
 		return CKR_OPERATION_ACTIVE;
 
 	rv = mock_C_EncryptInit(session, mechanism, key);
-	if (rv == CKR_OK) {
-		sess->message_method = CKA_ENCRYPT;
-	}
+	if (rv != CKR_OK)
+		return rv;
 
-	return rv;
+	sess->message_method = CKA_ENCRYPT;
+
+	return CKR_OK;
 }
 
 CK_RV
@@ -3947,11 +3950,11 @@ mock_C_EncryptMessageBegin (CK_SESSION_HANDLE session,
 		return CKR_OPERATION_NOT_INITIALIZED;
 
 	/* no AEAD */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0 ||
-	                    associated_data != NULL ||
-	                    associated_data_len != 0, CKR_ARGUMENTS_BAD);
+	if (parameter != NULL || parameter_len != 0 ||
+	    associated_data != NULL || associated_data_len != 0)
+		return CKR_ARGUMENTS_BAD;
 
+	sess->message_progress = true;
 	return CKR_OK;
 }
 
@@ -3990,21 +3993,20 @@ mock_C_EncryptMessageNext (CK_SESSION_HANDLE session,
 	CK_RV rv;
 
 	/* no params */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0, CKR_ARGUMENTS_BAD);
+	if (parameter != NULL ||  parameter_len != 0)
+		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
 	if (!sess)
 		return CKR_SESSION_HANDLE_INVALID;
 
-	if (sess->message_method != CKA_ENCRYPT)
+	if (sess->message_method != CKA_ENCRYPT || !sess->message_progress)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
 	rv = mock_C_EncryptUpdate(session, plaintext_part, plaintext_part_len,
 	                          ciphertext_part, ciphertext_part_len);
-	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE) {
-		rv = mock_C_MessageEncryptFinal(session);
-	}
+	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE)
+		sess->message_progress = false;
 
 	return rv;
 }
@@ -4024,12 +4026,11 @@ mock_C_EncryptMessage (CK_SESSION_HANDLE session,
 
 	rv = mock_C_EncryptMessageBegin (session, parameter, parameter_len,
 	                                 associated_data, associated_data_len);
-	if (rv == CKR_OK) {
-		rv = mock_C_EncryptMessageNext (session, parameter, parameter_len, plaintext, plaintext_len,
-		                                ciphertext, ciphertext_len, CKF_END_OF_MESSAGE);
-	}
+	if (rv != CKR_OK)
+		return rv;
 
-	return rv;
+	return mock_C_EncryptMessageNext (session, parameter, parameter_len, plaintext, plaintext_len,
+	                                  ciphertext, ciphertext_len, CKF_END_OF_MESSAGE);
 }
 
 CK_RV
@@ -4127,6 +4128,7 @@ mock_C_MessageDecryptInit (CK_SESSION_HANDLE session,
                            CK_MECHANISM_PTR mechanism,
                            CK_OBJECT_HANDLE key)
 {
+	CK_RV rv;
 	Session *sess;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4135,9 +4137,13 @@ mock_C_MessageDecryptInit (CK_SESSION_HANDLE session,
 	if (sess->message_method != 0)
 		return CKR_OPERATION_ACTIVE;
 
+	rv = mock_C_DecryptInit(session, mechanism, key);
+	if (rv != CKR_OK)
+		return rv;
+
 	sess->message_method = CKA_DECRYPT;
 
-	return mock_C_DecryptInit(session, mechanism, key);
+	return CKR_OK;
 }
 
 CK_RV
@@ -4164,12 +4170,21 @@ mock_C_DecryptMessageBegin (CK_SESSION_HANDLE session,
                             CK_BYTE_PTR associated_data,
                             CK_ULONG associated_data_len)
 {
-	/* no AEAD */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0 ||
-	                    associated_data != NULL ||
-	                    associated_data_len != 0, CKR_ARGUMENTS_BAD);
+	Session *sess;
 
+	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
+	if (!sess)
+		return CKR_SESSION_HANDLE_INVALID;
+
+	if (sess->message_method != CKA_DECRYPT)
+		return CKR_OPERATION_NOT_INITIALIZED;
+
+	/* no AEAD */
+	if (parameter != NULL || parameter_len != 0 ||
+	    associated_data != NULL || associated_data_len != 0)
+		return CKR_ARGUMENTS_BAD;
+
+	sess->message_progress = true;
 	return CKR_OK;
 }
 
@@ -4208,21 +4223,20 @@ mock_C_DecryptMessageNext (CK_SESSION_HANDLE session,
 	CK_RV rv;
 
 	/* no params */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0, CKR_ARGUMENTS_BAD);
+	if (parameter != NULL ||  parameter_len != 0)
+		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
 	if (!sess)
 		return CKR_SESSION_HANDLE_INVALID;
 
-	if (sess->message_method != CKA_DECRYPT)
+	if (sess->message_method != CKA_DECRYPT || !sess->message_progress)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
 	rv = mock_C_DecryptUpdate(session, ciphertext_part, ciphertext_part_len,
 	                          plaintext_part, plaintext_part_len);
-	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE) {
-		rv = mock_C_MessageDecryptFinal(session);
-	}
+	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE)
+		sess->message_progress = false;
 
 	return rv;
 }
@@ -4242,12 +4256,11 @@ mock_C_DecryptMessage (CK_SESSION_HANDLE session,
 
 	rv = mock_C_DecryptMessageBegin (session, parameter, parameter_len,
 	                                 associated_data, associated_data_len);
-	if (rv == CKR_OK) {
-		rv = mock_C_DecryptMessageNext (session, parameter, parameter_len, ciphertext, ciphertext_len,
-		                                plaintext, plaintext_len, CKF_END_OF_MESSAGE);
-	}
+	if (rv != CKR_OK)
+		return rv;
 
-	return rv;
+	return mock_C_DecryptMessageNext (session, parameter, parameter_len, ciphertext, ciphertext_len,
+	                                  plaintext, plaintext_len, CKF_END_OF_MESSAGE);
 }
 
 CK_RV
@@ -4381,8 +4394,8 @@ mock_C_SignMessageBegin (CK_SESSION_HANDLE session,
                          CK_ULONG parameter_len)
 {
 	/* no params */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0, CKR_ARGUMENTS_BAD);
+	if (parameter != NULL || parameter_len != 0)
+		return CKR_ARGUMENTS_BAD;
 
 	return CKR_OK;
 }
@@ -4400,8 +4413,8 @@ mock_C_SignMessageNext (CK_SESSION_HANDLE session,
 	CK_RV rv;
 
 	/* no params */
-	return_val_if_fail (parameter != NULL ||
-	                    parameter_len != 0, CKR_ARGUMENTS_BAD);
+	if (parameter != NULL || parameter_len != 0)
+		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
 	if (!sess)

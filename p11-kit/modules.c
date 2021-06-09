@@ -392,7 +392,7 @@ dlopen_and_get_interface_or_function_list (Module *mod,
 		}
 
 		/* TODO check the version and flag it somehere? */
-		funcs = interface->pFunctionList;
+		*funcs = interface->pFunctionList;
 	} else {
 		p11_debug ("C_GetInterface not available. Falling back to C_GetFunctionList()");
 

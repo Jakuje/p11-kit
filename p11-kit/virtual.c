@@ -2366,7 +2366,6 @@ stack_C_MessageVerifyFinal (CK_X_FUNCTION_LIST *self,
 	return funcs->C_MessageVerifyFinal (funcs, session);
 }
 
-
 static CK_RV
 base_C_Initialize (CK_X_FUNCTION_LIST *self,
                    CK_VOID_PTR init_args)

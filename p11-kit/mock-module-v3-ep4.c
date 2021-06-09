@@ -34,6 +34,8 @@
  *          Jakub Jelen <jjelen@redhat.com>
  */
 
+#include <string.h>
+
 #include "config.h"
 
 #define CRYPTOKI_EXPORTS 1
@@ -41,7 +43,17 @@
 
 #include "mock.h"
 
-#include <string.h>
+#include <unistd.h>
+
+static pid_t init_pid;
+
+static CK_RV
+override_initialize (CK_VOID_PTR init_args)
+{
+	if (init_pid != getpid ())
+		return CKR_GENERAL_ERROR;
+	return mock_C_Initialize (init_args);
+}
 
 /* Present for backward compatibibility */
 #ifdef OS_WIN32
@@ -54,6 +66,8 @@ C_GetFunctionList (CK_FUNCTION_LIST_PTR_PTR list)
 	mock_module.C_GetFunctionList = C_GetFunctionList;
 	if (list == NULL)
 		return CKR_ARGUMENTS_BAD;
+	init_pid = getpid ();
+	mock_module.C_Initialize = override_initialize;
 	*list = &mock_module;
 	return CKR_OK;
 }

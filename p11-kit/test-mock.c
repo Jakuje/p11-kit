@@ -1723,17 +1723,18 @@ test_message_encrypt (void)
 	assert_num_eq (4, length);
 	assert (memcmp (data, "BLAH", 4) == 0);
 
-	/* multi-part */
+	/* Already initialized */
 	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
-	assert_num_eq (rv, CKR_OK);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
 
+	/* multi-part */
 	/* invalid session */
 	rv = (module->C_EncryptMessageBegin) (0, NULL, 0, NULL, 0);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* params not supported yet */
 	rv = (module->C_EncryptMessageBegin) (session, (void *)"param", 5, NULL, 0);
-	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	/* associated data not supported yet */
 	rv = (module->C_EncryptMessageBegin) (session, NULL, 0, (CK_BYTE_PTR)"data", 4);
@@ -1753,8 +1754,8 @@ test_message_encrypt (void)
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	length = sizeof (data);
-	rv = (module->C_EncryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLurm", 4, data, &length,
-	                                   CKF_END_OF_MESSAGE);
+	rv = (module->C_EncryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLurm", 5, data, &length,
+	                                     CKF_END_OF_MESSAGE);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (5, length);
@@ -1784,10 +1785,41 @@ test_message_encrypt (void)
 }
 
 static void
+test_pkcs11_3_not_supported (void)
+{
+	CK_FUNCTION_LIST_3_0_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_MECHANISM crypt_mech = { CKM_MOCK_CAPITALIZE, NULL, 0 };
+	CK_MECHANISM sign_mech = { CKM_MOCK_PREFIX, "prefix:", 7 };
+	CK_RV rv;
+
+	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
+
+	/* not part of 2.x API */
+	rv = (module->C_LoginUser) (session, CKU_USER, (CK_UTF8CHAR_PTR)"booo", 4, (CK_UTF8CHAR_PTR)"yeah", 4);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+
+	rv = (module->C_SessionCancel) (session, 0);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+
+	rv = (module->C_MessageEncryptInit) (session, &crypt_mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+
+	rv = (module->C_MessageDecryptInit) (session, &crypt_mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+
+	rv = (module->C_MessageSignInit) (session, &sign_mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+
+	rv = (module->C_MessageVerifyInit) (session, &sign_mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
+}
+
+static void
 test_mock_add_tests (const char *prefix, CK_VERSION *version)
 {
 	p11_fixture (NULL, NULL);
-	/*p11_test (test_get_info, "%s/test_get_info", prefix);
+	p11_test (test_get_info, "%s/test_get_info", prefix);
 	p11_test (test_get_slot_list, "%s/test_get_slot_list", prefix);
 	p11_test (test_get_slot_info, "%s/test_get_slot_info", prefix);
 	p11_test (test_get_token_info, "%s/test_get_token_info", prefix);
@@ -1827,12 +1859,14 @@ test_mock_add_tests (const char *prefix, CK_VERSION *version)
 	p11_test (test_wrap_key, "%s/test_wrap_key", prefix);
 	p11_test (test_unwrap_key, "%s/test_unwrap_key", prefix);
 	p11_test (test_derive_key, "%s/test_derive_key", prefix);
-	p11_test (test_random, "%s/test_random", prefix);*/
+	p11_test (test_random, "%s/test_random", prefix);
 	/* PKCS #11 3.0 tests */
 	if (version && version->major == 3 && version->minor == 0) {
 		/* TODO  get_interface_list and get_interface */
 		p11_test (test_login_user, "%s/test_login_user", prefix);
 		/* TODO p11_test (test_session_cancel, "%s/test_session_cancel", prefix); */
 		p11_test (test_message_encrypt, "%s/test_message_encrypt", prefix);
+	} else {
+		p11_test (test_pkcs11_3_not_supported, "%s/test_pkcs11_3_not_supported", prefix);
 	}
 }

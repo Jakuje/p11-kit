@@ -1041,6 +1041,12 @@ struct ck_aes_cbc_encrypt_data_params {
 };
 
 #define CKF_HW			(1UL << 0)
+#define CKF_MESSAGE_ENCRYPT	(1UL << 1)
+#define CKF_MESSAGE_DECRYPT	(1UL << 2)
+#define CKF_MESSAGE_SIGN	(1UL << 3)
+#define CKF_MESSAGE_VERIFY	(1UL << 4)
+#define CKF_MULTI_MESSAGE	(1UL << 5)
+#define CKF_FIND_OBJECTS	(1UL << 6)
 #define CKF_ENCRYPT		(1UL << 8)
 #define CKF_DECRYPT		(1UL << 9)
 #define CKF_DIGEST		(1UL << 10)

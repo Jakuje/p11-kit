@@ -1062,7 +1062,6 @@ fixed ## fixed_index ## _C_LoginUser (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_LoginUser (funcs, session, user_type, pin, pin_len, username, username_len); \
@@ -1077,7 +1076,6 @@ fixed ## fixed_index ## _C_SessionCancel (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_SessionCancel (funcs, session, flags); \
@@ -1093,7 +1091,6 @@ fixed ## fixed_index ## _C_MessageEncryptInit (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageEncryptInit (funcs, session, mechanism, key); \
@@ -1115,7 +1112,6 @@ fixed ## fixed_index ## _C_EncryptMessage (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_EncryptMessage (funcs, session, parameter, parameter_len, associated_data, \
@@ -1135,7 +1131,6 @@ fixed ## fixed_index ## _C_EncryptMessageBegin (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_EncryptMessageBegin (funcs, session, parameter, parameter_len, \
@@ -1157,7 +1152,6 @@ fixed ## fixed_index ## _C_EncryptMessageNext (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_EncryptMessageNext (funcs, session, parameter, parameter_len, \
@@ -1173,7 +1167,6 @@ fixed ## fixed_index ## _C_MessageEncryptFinal (CK_SESSION_HANDLE session) \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageEncryptFinal (funcs, session); \
@@ -1189,7 +1182,6 @@ fixed ## fixed_index ## _C_MessageDecryptInit (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageDecryptInit (funcs, session, mechanism, key); \
@@ -1211,7 +1203,6 @@ fixed ## fixed_index ## _C_DecryptMessage (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_DecryptMessage (funcs, session, parameter, parameter_len, \
@@ -1231,7 +1222,6 @@ fixed ## fixed_index ## _C_DecryptMessageBegin (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_DecryptMessageBegin (funcs, session, parameter, parameter_len, \
@@ -1253,7 +1243,6 @@ fixed ## fixed_index ## _C_DecryptMessageNext (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_DecryptMessageNext (funcs, session, parameter, parameter_len, \
@@ -1269,7 +1258,6 @@ fixed ## fixed_index ## _C_MessageDecryptFinal (CK_SESSION_HANDLE session) \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageDecryptFinal (funcs, session); \
@@ -1285,7 +1273,6 @@ fixed ## fixed_index ## _C_MessageSignInit (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageSignInit (funcs, session, mechanism, key); \
@@ -1305,7 +1292,6 @@ fixed ## fixed_index ## _C_SignMessage (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_SignMessage (funcs, session, parameter, parameter_len, data, data_len, \
@@ -1322,7 +1308,6 @@ fixed ## fixed_index ## _C_SignMessageBegin (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_SignMessageBegin (funcs, session, parameter, parameter_len); \
@@ -1342,7 +1327,6 @@ fixed ## fixed_index ## _C_SignMessageNext (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_SignMessageNext (funcs, session, parameter, parameter_len, data, data_len, \
@@ -1357,7 +1341,6 @@ fixed ## fixed_index ## _C_MessageSignFinal (CK_SESSION_HANDLE session) \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageSignFinal (funcs, session); \
@@ -1373,7 +1356,6 @@ fixed ## fixed_index ## _C_MessageVerifyInit (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageVerifyInit (funcs, session, mechanism, key); \
@@ -1393,7 +1375,6 @@ fixed ## fixed_index ## _C_VerifyMessage (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_VerifyMessage (funcs, session, parameter, parameter_len, data, data_len, \
@@ -1410,7 +1391,6 @@ fixed ## fixed_index ## _C_VerifyMessageBegin (CK_SESSION_HANDLE session, \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_VerifyMessageBegin (funcs, session, parameter, parameter_len); \
@@ -1445,7 +1425,6 @@ fixed ## fixed_index ## _C_MessageVerifyFinal (CK_SESSION_HANDLE session) \
         CK_X_FUNCTION_LIST *funcs; \
         bound = fixed_closures[fixed_index]; \
         return_val_if_fail (bound != NULL, CKR_GENERAL_ERROR); \
-        return_val_if_fail (bound->version.major >= 3, CKR_FUNCTION_NOT_SUPPORTED); \
         wrapper = (Wrapper *) bound; \
         funcs = &wrapper->virt->funcs; \
         return funcs->C_MessageVerifyFinal (funcs, session); \
