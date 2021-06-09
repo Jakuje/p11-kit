@@ -159,21 +159,6 @@ test_disable (void)
 	modules = initialize_and_get_modules ();
 	assert (lookup_module_with_name (modules, "four") != NULL);
 	finalize_and_free_modules (modules);
-
-	/*
-	 * The module two shouldn't have been loaded, because in its config
-	 * file we have:
-	 *
-	 * disable-in: test-disable
-	 */
-
-	p11_kit_set_progname ("test-disable");
-
-	modules = initialize_and_get_modules ();
-	assert (lookup_module_with_name (modules, "four") == NULL);
-	finalize_and_free_modules (modules);
-
-	p11_kit_set_progname (NULL);
 }
 
 static void
