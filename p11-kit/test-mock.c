@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 Stefan Walter
- * Copyright (c) 2012-2013 Red Hat Inc.
+ * Copyright (c) 2012-2021 Red Hat Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  *
- * Author: Stef Walter <stef@thewalter.net>
+ * Authors: Stef Walter <stef@thewalter.net>
+ *          Jakub Jelen <jjelen@redhat.com>
  */
 
 #include "test.h"
@@ -583,6 +584,9 @@ test_set_attribute_value (void)
 	attrs[1].pValue = &bits;
 	attrs[1].ulValueLen = sizeof (bits);
 
+	rv = (module->C_SetAttributeValue) (0, MOCK_PRIVATE_KEY_CAPITALIZE, attrs, 2);
+	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
 	rv = (module->C_SetAttributeValue) (session, MOCK_PRIVATE_KEY_CAPITALIZE, attrs, 2);
 	assert (rv == CKR_USER_NOT_LOGGED_IN);
 
@@ -646,6 +650,61 @@ test_create_object (void)
 }
 
 static void
+test_create_object_private (void)
+{
+	CK_FUNCTION_LIST_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_OBJECT_HANDLE object;
+	CK_ATTRIBUTE attrs[8];
+	char label[32];
+	CK_ULONG bits;
+	CK_BBOOL true_value = CK_TRUE;
+	CK_RV rv;
+
+	module = setup_mock_module (&session);
+
+	strcpy (label, "Private Blahooo");
+	bits = 15555;
+
+	attrs[0].type = CKA_LABEL;
+	attrs[0].pValue = label;
+	attrs[0].ulValueLen = strlen (label);
+	attrs[1].type = CKA_BITS_PER_PIXEL;
+	attrs[1].pValue = &bits;
+	attrs[1].ulValueLen = sizeof (bits);
+	attrs[2].type = CKA_PRIVATE;
+	attrs[2].pValue = &true_value;
+	attrs[2].ulValueLen = sizeof (true_value);
+
+	rv = (module->C_CreateObject) (0, attrs, 3, &object);
+	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_CreateObject) (session, attrs, 3, &object);
+	assert (rv == CKR_USER_NOT_LOGGED_IN);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	rv = (module->C_CreateObject) (session, attrs, 3, &object);
+	assert (rv == CKR_OK);
+
+	attrs[0].ulValueLen = sizeof (label);
+	memset (label, 0, sizeof (label));
+	bits = 0;
+	true_value = -1;
+
+	rv = (module->C_GetAttributeValue) (session, object, attrs, 3);
+	assert (rv == CKR_OK);
+
+	assert_num_eq (bits, 15555);
+	assert_num_eq (15, attrs[0].ulValueLen);
+	assert (memcmp (label, "Private Blahooo", attrs[0].ulValueLen) == 0);
+	assert_num_eq (true_value, CK_TRUE);
+
+	teardown_mock_module (module);
+}
+
+static void
 test_copy_object (void)
 {
 	CK_FUNCTION_LIST_PTR module;
@@ -681,6 +740,52 @@ test_copy_object (void)
 	assert_num_eq (bits, 1555);
 	assert_num_eq (21, attrs[1].ulValueLen);
 	assert (memcmp (label, "Public Capitalize Key", attrs[1].ulValueLen) == 0);
+
+	teardown_mock_module (module);
+}
+
+static void
+test_copy_object_private (void)
+{
+	CK_FUNCTION_LIST_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_OBJECT_HANDLE object;
+	CK_ATTRIBUTE attrs[8];
+	char label[32];
+	CK_ULONG bits;
+	CK_RV rv;
+
+	module = setup_mock_module (&session);
+
+	bits = 1555;
+
+	attrs[0].type = CKA_BITS_PER_PIXEL;
+	attrs[0].pValue = &bits;
+	attrs[0].ulValueLen = sizeof (bits);
+
+	rv = (module->C_CopyObject) (session, 1333, attrs, 1, &object);
+	assert (rv == CKR_OBJECT_HANDLE_INVALID);
+
+	rv = (module->C_CopyObject) (session, MOCK_PRIVATE_KEY_CAPITALIZE, attrs, 1, &object);
+	assert (rv == CKR_USER_NOT_LOGGED_IN);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	rv = (module->C_CopyObject) (session, MOCK_PRIVATE_KEY_CAPITALIZE, attrs, 1, &object);
+	assert_num_eq (rv, CKR_OK);
+
+	attrs[1].type = CKA_LABEL;
+	attrs[1].pValue = label;
+	attrs[1].ulValueLen = sizeof (label);
+	bits = 0;
+
+	rv = (module->C_GetAttributeValue) (session, object, attrs, 2);
+	assert (rv == CKR_OK);
+
+	assert_num_eq (bits, 1555);
+	assert_num_eq (22, attrs[1].ulValueLen);
+	assert (memcmp (label, "Private Capitalize Key", attrs[1].ulValueLen) == 0);
 
 	teardown_mock_module (module);
 }
@@ -808,15 +913,40 @@ test_encrypt (void)
 
 	module = setup_mock_module (&session);
 
+	rv = (module->C_EncryptInit) (0, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
 	rv = (module->C_EncryptInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
 	assert (rv == CKR_KEY_HANDLE_INVALID);
 
 	rv = (module->C_EncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert (rv == CKR_OK);
 
+	/* null mechanism cancels the operation */
+	rv = (module->C_EncryptInit) (session, NULL, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
 	length = sizeof (data);
 	rv = (module->C_Encrypt) (0, (CK_BYTE_PTR)"blah", 4, data, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (data);
+	rv = (module->C_Encrypt) (session, (CK_BYTE_PTR)"blah", 4, data, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_EncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert (rv == CKR_OK);
+
+	/* just get the length */
+	length = 0;
+	rv = (module->C_Encrypt) (session, (CK_BYTE_PTR)"blah", 4, NULL, &length);
+	assert_num_eq (rv, CKR_OK);
+	assert_num_eq (length, 4);
+
+	length = 1;
+	rv = (module->C_Encrypt) (session, (CK_BYTE_PTR)"blah", 4, data, &length);
+	assert_num_eq (rv, CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (length, 4);
 
 	length = sizeof (data);
 	rv = (module->C_Encrypt) (session, (CK_BYTE_PTR)"blah", 4, data, &length);
@@ -847,6 +977,10 @@ test_encrypt (void)
 	rv = (module->C_EncryptFinal) (session, data, &length);
 	assert (rv == CKR_OK);
 
+	length = sizeof (data);
+	rv = (module->C_EncryptFinal) (session, data, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
 	teardown_mock_module (module);
 }
 
@@ -865,15 +999,40 @@ test_decrypt (void)
 	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
 	assert (rv == CKR_OK);
 
+	rv = (module->C_DecryptInit) (0, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
 	rv = (module->C_DecryptInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
 	assert (rv == CKR_KEY_HANDLE_INVALID);
 
 	rv = (module->C_DecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
 	assert (rv == CKR_OK);
 
+	/* null mechanism cancels the operation */
+	rv = (module->C_DecryptInit) (session, NULL, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert (rv == CKR_OK);
+
 	length = sizeof (data);
 	rv = (module->C_Decrypt) (0, (CK_BYTE_PTR)"bLAH", 4, data, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (data);
+	rv = (module->C_Decrypt) (session, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_DecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert (rv == CKR_OK);
+
+	/* just get the length */
+	length = 0;
+	rv = (module->C_Decrypt) (session, (CK_BYTE_PTR)"BLAh", 4, NULL, &length);
+	assert (rv == CKR_OK);
+	assert_num_eq (length, 4);
+
+	length = 1;
+	rv = (module->C_Decrypt) (session, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (length, 4);
 
 	length = sizeof (data);
 	rv = (module->C_Decrypt) (session, (CK_BYTE_PTR)"BLAh", 4, data, &length);
@@ -904,6 +1063,10 @@ test_decrypt (void)
 	rv = (module->C_DecryptFinal) (session, data, &length);
 	assert (rv == CKR_OK);
 
+	length = sizeof (data);
+	rv = (module->C_DecryptFinal) (session, data, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
 	teardown_mock_module (module);
 }
 
@@ -913,6 +1076,7 @@ test_digest (void)
 	CK_FUNCTION_LIST_PTR module;
 	CK_SESSION_HANDLE session = 0;
 	CK_MECHANISM mech = { CKM_MOCK_COUNT, NULL, 0 };
+	CK_MECHANISM mech_bad = { CKM_MOCK_PREFIX, NULL, 0 };
 	CK_BYTE digest[128];
 	CK_ULONG length;
 	CK_RV rv;
@@ -922,12 +1086,37 @@ test_digest (void)
 	rv = (module->C_DigestInit) (0, &mech);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
 
+	rv = (module->C_DigestInit) (session, &mech_bad);
+	assert (rv == CKR_MECHANISM_INVALID);
+
 	rv = (module->C_DigestInit) (session, &mech);
 	assert (rv == CKR_OK);
+
+	/* null mechanism cancels the operation */
+	rv = (module->C_DigestInit) (session, NULL);
+	assert_num_eq (rv, CKR_OK);
 
 	length = sizeof (digest);
 	rv = (module->C_Digest) (0, (CK_BYTE_PTR)"bLAH", 4, digest, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (digest);
+	rv = (module->C_Digest) (session, (CK_BYTE_PTR)"BLAh", 4, digest, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_DigestInit) (session, &mech);
+	assert (rv == CKR_OK);
+
+	/* just get the length */
+	length = sizeof (digest);
+	rv = (module->C_Digest) (session, (CK_BYTE_PTR)"BLAh", 4, NULL, &length);
+	assert (rv == CKR_OK);
+	assert_num_eq (length, 1);
+
+	length = 0;
+	rv = (module->C_Digest) (session, (CK_BYTE_PTR)"BLAh", 4, digest, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (length, 1);
 
 	length = sizeof (digest);
 	rv = (module->C_Digest) (session, (CK_BYTE_PTR)"BLAh", 4, digest, &length);
@@ -988,12 +1177,34 @@ test_sign (void)
 	rv = (module->C_SignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
-	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	/* NULL mechanisms cancel the operation */
+	rv = (module->C_SignInit) (session, NULL, MOCK_PRIVATE_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
 	length = sizeof (signature);
 	rv = (module->C_Sign) (0, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (signature);
+	rv = (module->C_Sign) (session, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_SignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert (rv == CKR_OK);
+
+	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	assert (rv == CKR_OK);
+
+	/* just get the length */
+	length = sizeof (signature);
+	rv = (module->C_Sign) (session, (CK_BYTE_PTR)"BLAh", 4, NULL, &length);
+	assert_num_eq (rv, CKR_OK);
+	assert_num_eq (13, length);
+
+	length = 1;
+	rv = (module->C_Sign) (session, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (13, length);
 
 	length = sizeof (signature);
 	rv = (module->C_Sign) (session, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
@@ -1052,12 +1263,35 @@ test_sign_recover (void)
 	rv = (module->C_SignRecoverInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
-	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	/* NULL mech cancels the operation */
+	rv = (module->C_SignRecoverInit) (session, NULL, MOCK_PRIVATE_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
 	length = sizeof (signature);
 	rv = (module->C_SignRecover) (0, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (signature);
+	rv = (module->C_SignRecover) (session, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_SignRecoverInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert (rv == CKR_OK);
+
+	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	assert (rv == CKR_OK);
+
+	/* just get the length */
+	length = 0;
+	rv = (module->C_SignRecover) (session, (CK_BYTE_PTR)"BLAh", 4, NULL, &length);
+	assert (rv == CKR_OK);
+	assert_num_eq (16, length);
+
+	/* just get the length */
+	length = 1;
+	rv = (module->C_SignRecover) (session, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (16, length);
 
 	length = sizeof (signature);
 	rv = (module->C_SignRecover) (session, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
@@ -1087,10 +1321,20 @@ test_verify (void)
 	rv = (module->C_VerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
+	/* NULL mech cancels operation */
+	rv = (module->C_VerifyInit) (session, NULL, MOCK_PUBLIC_KEY_PREFIX);
+	assert (rv == CKR_OK);
+
 	length = 13;
 	memcpy (signature, "prefix:value4", length);
 	rv = (module->C_Verify) (0, (CK_BYTE_PTR)"bLAH", 4, signature, 5);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_Verify) (session, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_VerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert (rv == CKR_OK);
 
 	rv = (module->C_Verify) (session, (CK_BYTE_PTR)"BLAh", 4, signature, length);
 	assert (rv == CKR_OK);
@@ -1137,9 +1381,32 @@ test_verify_recover (void)
 	rv = (module->C_VerifyRecoverInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
 	assert (rv == CKR_OK);
 
+	/* NULL mech cancels operation */
+	rv = (module->C_VerifyRecoverInit) (session, NULL, MOCK_PUBLIC_KEY_PREFIX);
+	assert (rv == CKR_OK);
+
 	length = sizeof (data);
 	rv = (module->C_VerifyRecover) (0, (CK_BYTE_PTR)"prefix:valueBLah", 16, data, &length);
 	assert (rv == CKR_SESSION_HANDLE_INVALID);
+
+	length = sizeof (data);
+	rv = (module->C_VerifyRecover) (session, (CK_BYTE_PTR)"prefix:valueBLah", 16, data, &length);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_VerifyRecoverInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert (rv == CKR_OK);
+
+	/* just get the size */
+	length = sizeof (data);
+	rv = (module->C_VerifyRecover) (session, (CK_BYTE_PTR)"prefix:valueBLah", 16, NULL, &length);
+	assert (rv == CKR_OK);
+	assert_num_eq (4, length);
+
+	/* Still too short */
+	length = 1;
+	rv = (module->C_VerifyRecover) (session, (CK_BYTE_PTR)"prefix:valueBLah", 16, data, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (4, length);
 
 	length = sizeof (data);
 	rv = (module->C_VerifyRecover) (session, (CK_BYTE_PTR)"prefix:valueBLah", 16, data, &length);
@@ -1491,6 +1758,19 @@ test_wrap_key (void)
 	mech.pParameter = "wrap";
 	mech.ulParameterLen = 4;
 
+	/* just get the length */
+	length = sizeof (data);
+	rv = (module->C_WrapKey) (session, &mech, MOCK_PUBLIC_KEY_PREFIX, MOCK_PUBLIC_KEY_PREFIX, NULL, &length);
+	assert (rv == CKR_OK);
+	assert_num_eq (5, length);
+
+	/* still not large enough */
+	length = 1;
+	rv = (module->C_WrapKey) (session, &mech, MOCK_PUBLIC_KEY_PREFIX, MOCK_PUBLIC_KEY_PREFIX, data, &length);
+	assert (rv == CKR_BUFFER_TOO_SMALL);
+	assert_num_eq (5, length);
+
+
 	rv = (module->C_WrapKey) (session, &mech, MOCK_PUBLIC_KEY_PREFIX, MOCK_PUBLIC_KEY_PREFIX, data, &length);
 	assert (rv == CKR_OK);
 
@@ -1673,20 +1953,78 @@ test_login_user (void)
 }
 
 static void
+test_session_cancel (void)
+{
+	CK_FUNCTION_LIST_3_0_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_MECHANISM mech = { CKM_MOCK_CAPITALIZE, NULL, 0 };
+	CK_OBJECT_CLASS klass = CKO_PUBLIC_KEY;
+	CK_ATTRIBUTE attr = { CKA_CLASS, &klass, sizeof (klass) };
+	CK_RV rv;
+
+	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert (rv == CKR_OK);
+
+	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
+	/* already initialized */
+	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
+
+	/* already initialized also the old API */
+	/*rv = (module->C_SignInit) (session, &mech_sign, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);*/
+
+	/* missing session */
+	rv = (module->C_SessionCancel) (0, CKF_MESSAGE_ENCRYPT);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_SessionCancel) (session, CKF_MESSAGE_ENCRYPT);
+	assert_num_eq (rv, CKR_OK);
+
+	/* now, it should work */
+	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
+	/* Start FindObjects */
+	rv = (module->C_FindObjectsInit) (session, &attr, 1);
+	assert (rv == CKR_OK);
+
+	rv = (module->C_SessionCancel) (session, CKF_FIND_OBJECTS);
+	assert_num_eq (rv, CKR_OK);
+
+	rv = (module->C_FindObjectsFinal) (session);
+	assert (rv == CKR_OPERATION_NOT_INITIALIZED);
+
+	teardown_mock_module ((CK_FUNCTION_LIST_PTR)module);
+}
+
+static void
 test_message_encrypt (void)
 {
 	CK_FUNCTION_LIST_3_0_PTR module;
 	CK_SESSION_HANDLE session = 0;
 	CK_MECHANISM mech = { CKM_MOCK_CAPITALIZE, NULL, 0 };
+	CK_MECHANISM mech_bad = { CKM_MOCK_WRAP, NULL, 0 };
 	CK_BYTE data[128];
 	CK_ULONG length;
 	CK_RV rv;
 
 	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
 
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
 	/* missing session */
 	rv = (module->C_MessageEncryptInit) (0, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* bad mechanism */
+	rv = (module->C_MessageEncryptInit) (session, &mech_bad, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_MECHANISM_INVALID);
 
 	/* wrong key handle */
 	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
@@ -1695,14 +2033,26 @@ test_message_encrypt (void)
 	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_OK);
 
-	/* operation already active -- might not work with all pkcs11 modules? */
+	/* operation already active */
 	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
+
+	/* NULL mech cancels the operation */
+	rv = (module->C_MessageEncryptInit) (session, NULL, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
 
 	/* invalid session */
 	length = sizeof (data);
 	rv = (module->C_EncryptMessage) (0, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* not initialized */
+	length = sizeof (data);
+	rv = (module->C_EncryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
 
 	/* params not supported yet */
 	length = sizeof (data);
@@ -1715,17 +2065,12 @@ test_message_encrypt (void)
 	rv = (module->C_EncryptMessage) (session, NULL, 0, (CK_BYTE_PTR)"other data", 10,
 	                                 (CK_BYTE_PTR)"blah", 4, data, &length);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
-
 	length = sizeof (data);
 	rv = (module->C_EncryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (4, length);
 	assert (memcmp (data, "BLAH", 4) == 0);
-
-	/* Already initialized */
-	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
-	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
 
 	/* multi-part */
 	/* invalid session */
@@ -1785,6 +2130,392 @@ test_message_encrypt (void)
 }
 
 static void
+test_message_decrypt (void)
+{
+	CK_FUNCTION_LIST_3_0_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_MECHANISM mech = { CKM_MOCK_CAPITALIZE, NULL, 0 };
+	CK_MECHANISM mech_bad = { CKM_MOCK_WRAP, NULL, 0 };
+	CK_BYTE data[128];
+	CK_ULONG length;
+	CK_RV rv;
+
+	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	/* missing session */
+	rv = (module->C_MessageDecryptInit) (0, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* bad mechanism */
+	rv = (module->C_MessageDecryptInit) (session, &mech_bad, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_MECHANISM_INVALID);
+
+	/* wrong key handle */
+	rv = (module->C_MessageDecryptInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_KEY_HANDLE_INVALID);
+
+	rv = (module->C_MessageDecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation already active */
+	rv = (module->C_MessageDecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
+
+	/* NULL mech cancels the operation */
+	rv = (module->C_MessageDecryptInit) (session, NULL, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
+	/* invalid session */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessage) (0, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* not initialized */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_MessageDecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_OK);
+
+	/* params not supported yet */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessage) (session, "whatever", 8, NULL, 0, (CK_BYTE_PTR)"BLAh", 4,
+	                                 data, &length);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	/* associated data not supported yet */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessage) (session, NULL, 0, (CK_BYTE_PTR)"other data", 10,
+	                                 (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	length = sizeof (data);
+	rv = (module->C_DecryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	assert_num_eq (rv, CKR_OK);
+
+	assert_num_eq (4, length);
+	assert (memcmp (data, "blah", 4) == 0);
+
+	/* multi-part */
+	/* invalid session */
+	rv = (module->C_DecryptMessageBegin) (0, NULL, 0, NULL, 0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* params not supported yet */
+	rv = (module->C_DecryptMessageBegin) (session, (void *)"param", 5, NULL, 0);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	/* associated data not supported yet */
+	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, (CK_BYTE_PTR)"data", 4);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, NULL, 0);
+	assert_num_eq (rv, CKR_OK);
+
+	/* session invalid */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 4, data, &length, 0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* parameters not supported yet */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 4, data, &length, 0);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	length = sizeof (data);
+	rv = (module->C_DecryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, data, &length,
+	                                     CKF_END_OF_MESSAGE);
+	assert_num_eq (rv, CKR_OK);
+
+	assert_num_eq (5, length);
+	assert (memcmp (data, "slurm", 5) == 0);
+
+	/* invalid session */
+	rv = (module->C_MessageDecryptFinal) (0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_MessageDecryptFinal) (session);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation not active */
+	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, NULL, 0);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	length = sizeof (data);
+	rv = (module->C_DecryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, data, &length, 0);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	rv = (module->C_MessageDecryptFinal) (session);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	teardown_mock_module ((CK_FUNCTION_LIST_PTR)module);
+}
+
+static void
+test_message_sign (void)
+{
+	CK_FUNCTION_LIST_3_0_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_MECHANISM mech = { CKM_MOCK_PREFIX, "prefix:", 7 };
+	CK_MECHANISM mech_bad = { CKM_MOCK_WRAP, NULL, 0 };
+	CK_BYTE signature[128];
+	CK_ULONG length;
+	CK_RV rv;
+
+	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	/* missing session */
+	rv = (module->C_MessageSignInit) (0, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* bad mechanism */
+	rv = (module->C_MessageSignInit) (session, &mech_bad, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_MECHANISM_INVALID);
+
+	/* wrong key handle */
+	rv = (module->C_MessageSignInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_KEY_HANDLE_INVALID);
+
+	rv = (module->C_MessageSignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation already active */
+	rv = (module->C_MessageSignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
+
+	/* NULL mech cancels the operation */
+	rv = (module->C_MessageSignInit) (session, NULL, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* invalid session */
+	length = sizeof (signature);
+	rv = (module->C_SignMessage) (0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* not initialized */
+	length = sizeof (signature);
+	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_MessageSignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* params not supported yet */
+	length = sizeof (signature);
+	rv = (module->C_SignMessage) (session, "whatever", 8, (CK_BYTE_PTR)"BLAh", 4,
+	                              signature, &length);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	/* For context specific signatures, we require login */
+	length = sizeof (signature);
+	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert_num_eq (rv, CKR_USER_NOT_LOGGED_IN);
+
+	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	assert (rv == CKR_OK);
+
+	length = sizeof (signature);
+	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	assert_num_eq (rv, CKR_OK);
+
+	assert_num_eq (13, length);
+	assert (memcmp (signature, "prefix:value4", 13) == 0);
+
+	/* multi-part */
+	/* invalid session */
+	rv = (module->C_SignMessageBegin) (0, NULL, 0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* params not supported yet */
+	rv = (module->C_SignMessageBegin) (session, (void *)"param", 5);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	rv = (module->C_SignMessageBegin) (session, NULL, 0);
+	assert_num_eq (rv, CKR_OK);
+
+	/* session invalid */
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 4, signature, &length);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* parameters not supported yet */
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 4,
+	                                  signature, &length);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
+	assert_num_eq (rv, CKR_USER_NOT_LOGGED_IN);
+
+	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
+	assert_num_eq (rv, CKR_OK);
+
+	/* get the size only */
+	length = 0;
+	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"Other", 5, NULL, &length);
+	assert_num_eq (rv, CKR_OK);
+	assert_num_eq (14, length);
+
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (session, NULL, 0, NULL, 0, signature, &length);
+	assert_num_eq (rv, CKR_OK);
+
+	assert_num_eq (14, length);
+	assert (memcmp (signature, "prefix:value10", 14) == 0);
+
+	/* invalid session */
+	rv = (module->C_MessageSignFinal) (0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_MessageSignFinal) (session);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation not active */
+	rv = (module->C_SignMessageBegin) (session, NULL, 0);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	length = sizeof (signature);
+	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	rv = (module->C_MessageSignFinal) (session);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	teardown_mock_module ((CK_FUNCTION_LIST_PTR)module);
+}
+
+static void
+test_message_verify (void)
+{
+	CK_FUNCTION_LIST_3_0_PTR module;
+	CK_SESSION_HANDLE session = 0;
+	CK_MECHANISM mech = { CKM_MOCK_PREFIX, "prefix:", 7 };
+	CK_MECHANISM mech_bad = { CKM_MOCK_WRAP, NULL, 0 };
+	CK_BYTE signature[128];
+	CK_ULONG length;
+	CK_RV rv;
+
+	module = (CK_FUNCTION_LIST_3_0_PTR)setup_mock_module (&session);
+
+	rv = (module->C_Login) (session, CKU_USER, (CK_BYTE_PTR)"booo", 4);
+	assert_num_eq (rv, CKR_OK);
+
+	/* missing session */
+	rv = (module->C_MessageVerifyInit) (0, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* bad mechanism */
+	rv = (module->C_MessageVerifyInit) (session, &mech_bad, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_MECHANISM_INVALID);
+
+	/* wrong key handle */
+	rv = (module->C_MessageVerifyInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	assert_num_eq (rv, CKR_KEY_HANDLE_INVALID);
+
+	rv = (module->C_MessageVerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation already active */
+	rv = (module->C_MessageVerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OPERATION_ACTIVE);
+
+	/* NULL mech cancels the operation */
+	rv = (module->C_MessageVerifyInit) (session, NULL, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* invalid session */
+	length = 13;
+	memcpy (signature, "prefix:value4", length);
+	rv = (module->C_VerifyMessage) (0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* not initialized */
+	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = (module->C_MessageVerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
+	assert_num_eq (rv, CKR_OK);
+
+	/* params not supported yet */
+	rv = (module->C_VerifyMessage) (session, "whatever", 8, (CK_BYTE_PTR)"BLAh", 4,
+	                                signature, length);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	assert_num_eq (rv, CKR_OK);
+
+	/* Wrong signature */
+	memcpy (signature, "prefix:value5", length);
+	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	assert_num_eq (rv, CKR_SIGNATURE_INVALID);
+
+	/* multi-part */
+	/* invalid session */
+	rv = (module->C_VerifyMessageBegin) (0, NULL, 0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* params not supported yet */
+	rv = (module->C_VerifyMessageBegin) (session, (void *)"param", 5);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	rv = (module->C_VerifyMessageBegin) (session, NULL, 0);
+	assert_num_eq (rv, CKR_OK);
+
+	/* session invalid */
+	length = 14;
+	memcpy (signature, "prefix:value10", length);
+	rv = (module->C_VerifyMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, signature, length);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	/* parameters not supported yet */
+	rv = (module->C_VerifyMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 5, NULL, 0);
+	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
+
+	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, 0);
+	assert_num_eq (rv, CKR_OK);
+
+	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"Other", 5, signature, length);
+	assert_num_eq (rv, CKR_OK);
+
+	/* invalid session */
+	rv = (module->C_MessageVerifyFinal) (0);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
+
+	rv = (module->C_MessageVerifyFinal) (session);
+	assert_num_eq (rv, CKR_OK);
+
+	/* operation not active */
+	rv = (module->C_VerifyMessageBegin) (session, NULL, 0);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, signature, length);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* operation not active */
+	rv = (module->C_MessageVerifyFinal) (session);
+	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
+
+	teardown_mock_module ((CK_FUNCTION_LIST_PTR)module);
+}
+
+static void
 test_pkcs11_3_not_supported (void)
 {
 	CK_FUNCTION_LIST_3_0_PTR module;
@@ -1805,7 +2536,7 @@ test_pkcs11_3_not_supported (void)
 	rv = (module->C_MessageEncryptInit) (session, &crypt_mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
 
-	rv = (module->C_MessageDecryptInit) (session, &crypt_mech, MOCK_PUBLIC_KEY_CAPITALIZE);
+	rv = (module->C_MessageDecryptInit) (session, &crypt_mech, MOCK_PRIVATE_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_FUNCTION_NOT_SUPPORTED);
 
 	rv = (module->C_MessageSignInit) (session, &sign_mech, MOCK_PUBLIC_KEY_PREFIX);
@@ -1839,7 +2570,9 @@ test_mock_add_tests (const char *prefix, CK_VERSION *version)
 	p11_test (test_get_attribute_value, "%s/test_get_attribute_value", prefix);
 	p11_test (test_set_attribute_value, "%s/test_set_attribute_value", prefix);
 	p11_test (test_create_object, "%s/test_create_object", prefix);
+	p11_test (test_create_object_private, "%s/test_create_object_private", prefix);
 	p11_test (test_copy_object, "%s/test_copy_object", prefix);
+	p11_test (test_copy_object_private, "%s/test_copy_object_private", prefix);
 	p11_test (test_destroy_object, "%s/test_destroy_object", prefix);
 	p11_test (test_get_object_size, "%s/test_get_object_size", prefix);
 	p11_test (test_find_objects, "%s/test_find_objects", prefix);
@@ -1862,10 +2595,12 @@ test_mock_add_tests (const char *prefix, CK_VERSION *version)
 	p11_test (test_random, "%s/test_random", prefix);
 	/* PKCS #11 3.0 tests */
 	if (version && version->major == 3 && version->minor == 0) {
-		/* TODO  get_interface_list and get_interface */
 		p11_test (test_login_user, "%s/test_login_user", prefix);
-		/* TODO p11_test (test_session_cancel, "%s/test_session_cancel", prefix); */
+		p11_test (test_session_cancel, "%s/test_session_cancel", prefix);
 		p11_test (test_message_encrypt, "%s/test_message_encrypt", prefix);
+		p11_test (test_message_decrypt, "%s/test_message_decrypt", prefix);
+		p11_test (test_message_sign, "%s/test_message_sign", prefix);
+		p11_test (test_message_verify, "%s/test_message_verify", prefix);
 	} else {
 		p11_test (test_pkcs11_3_not_supported, "%s/test_pkcs11_3_not_supported", prefix);
 	}
