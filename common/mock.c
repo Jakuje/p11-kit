@@ -4074,9 +4074,11 @@ mock_C_EncryptMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_ENCRYPT)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
+	if (parameter_len != 13 || memcmp(parameter, "encrypt-param", 13))
+		return CKR_ARGUMENTS_BAD;
+
 	/* no AEAD */
-	if (parameter != NULL || parameter_len != 0 ||
-	    associated_data != NULL || associated_data_len != 0)
+	if (associated_data != NULL || associated_data_len != 0)
 		return CKR_ARGUMENTS_BAD;
 
 	sess->message_progress = true;
@@ -4118,8 +4120,7 @@ mock_C_EncryptMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	/* no params */
-	if (parameter != NULL ||  parameter_len != 0)
+	if (parameter_len != 13 || memcmp(parameter, "encrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4309,9 +4310,11 @@ mock_C_DecryptMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_DECRYPT)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
+	if (parameter_len != 13 || memcmp(parameter, "decrypt-param", 13))
+		return CKR_ARGUMENTS_BAD;
+
 	/* no AEAD */
-	if (parameter != NULL || parameter_len != 0 ||
-	    associated_data != NULL || associated_data_len != 0)
+	if (associated_data != NULL || associated_data_len != 0)
 		return CKR_ARGUMENTS_BAD;
 
 	sess->message_progress = true;
@@ -4354,8 +4357,7 @@ mock_C_DecryptMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	/* no params */
-	if (parameter != NULL ||  parameter_len != 0)
+	if (parameter_len != 13 || memcmp(parameter, "decrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4546,8 +4548,7 @@ mock_C_SignMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_SIGN)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	/* no params */
-	if (parameter != NULL || parameter_len != 0)
+	if (parameter_len != 10 || memcmp(parameter, "sign-param", 10))
 		return CKR_ARGUMENTS_BAD;
 
 	if (sess->hash_method != CKF_SIGN) {
@@ -4574,8 +4575,7 @@ mock_C_SignMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	/* no params */
-	if (parameter != NULL || parameter_len != 0)
+	if (parameter_len != 10 || memcmp(parameter, "sign-param", 10))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4777,8 +4777,7 @@ mock_C_VerifyMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_VERIFY)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	/* no params */
-	if (parameter != NULL || parameter_len != 0)
+	if (parameter_len != 12 || memcmp(parameter, "verify-param", 12))
 		return CKR_ARGUMENTS_BAD;
 
 	if (sess->hash_method != CKF_VERIFY) {
@@ -4805,8 +4804,7 @@ mock_C_VerifyMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	/* no params */
-	if (parameter != NULL || parameter_len != 0)
+	if (parameter_len != 12 || memcmp(parameter, "verify-param", 12))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));

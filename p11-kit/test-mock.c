@@ -2043,18 +2043,20 @@ test_message_encrypt (void)
 
 	/* invalid session */
 	length = sizeof (data);
-	rv = (module->C_EncryptMessage) (0, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
+	rv = (module->C_EncryptMessage) (0, "encrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"blah", 4,
+	                                 data, &length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* not initialized */
 	length = sizeof (data);
-	rv = (module->C_EncryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
+	rv = (module->C_EncryptMessage) (session, "encrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"blah", 4,
+	                                 data, &length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = (module->C_MessageEncryptInit) (session, &mech, MOCK_PUBLIC_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_OK);
 
-	/* params not supported yet */
+	/* wrong param */
 	length = sizeof (data);
 	rv = (module->C_EncryptMessage) (session, "whatever", 8, NULL, 0, (CK_BYTE_PTR)"blah", 4,
 	                                 data, &length);
@@ -2062,11 +2064,12 @@ test_message_encrypt (void)
 
 	/* associated data not supported yet */
 	length = sizeof (data);
-	rv = (module->C_EncryptMessage) (session, NULL, 0, (CK_BYTE_PTR)"other data", 10,
+	rv = (module->C_EncryptMessage) (session, "encrypt-param", 13, (CK_BYTE_PTR)"other data", 10,
 	                                 (CK_BYTE_PTR)"blah", 4, data, &length);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 	length = sizeof (data);
-	rv = (module->C_EncryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length);
+	rv = (module->C_EncryptMessage) (session, "encrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"blah", 4,
+	                                 data, &length);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (4, length);
@@ -2074,33 +2077,33 @@ test_message_encrypt (void)
 
 	/* multi-part */
 	/* invalid session */
-	rv = (module->C_EncryptMessageBegin) (0, NULL, 0, NULL, 0);
+	rv = (module->C_EncryptMessageBegin) (0, "encrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* params not supported yet */
-	rv = (module->C_EncryptMessageBegin) (session, (void *)"param", 5, NULL, 0);
+	/* wrong param */
+	rv = (module->C_EncryptMessageBegin) (session, "param", 5, NULL, 0);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	/* associated data not supported yet */
-	rv = (module->C_EncryptMessageBegin) (session, NULL, 0, (CK_BYTE_PTR)"data", 4);
+	rv = (module->C_EncryptMessageBegin) (session, "encrypt-param", 13, (CK_BYTE_PTR)"data", 4);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_EncryptMessageBegin) (session, NULL, 0, NULL, 0);
+	rv = (module->C_EncryptMessageBegin) (session, "encrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_OK);
 
 	/* session invalid */
 	length = sizeof (data);
-	rv = (module->C_EncryptMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLurm", 4, data, &length, 0);
+	rv = (module->C_EncryptMessageNext) (0, "encrypt-param", 13, (CK_BYTE_PTR)"sLurm", 4, data, &length, 0);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* parameters not supported yet */
+	/* wrong param */
 	length = sizeof (data);
 	rv = (module->C_EncryptMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLurm", 4, data, &length, 0);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	length = sizeof (data);
-	rv = (module->C_EncryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLurm", 5, data, &length,
-	                                     CKF_END_OF_MESSAGE);
+	rv = (module->C_EncryptMessageNext) (session, "encrypt-param", 13, (CK_BYTE_PTR)"sLurm", 5,
+	                                     data, &length, CKF_END_OF_MESSAGE);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (5, length);
@@ -2114,12 +2117,13 @@ test_message_encrypt (void)
 	assert_num_eq (rv, CKR_OK);
 
 	/* operation not active */
-	rv = (module->C_EncryptMessageBegin) (session, NULL, 0, NULL, 0);
+	rv = (module->C_EncryptMessageBegin) (session, "encrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
 	length = sizeof (data);
-	rv = (module->C_EncryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"blah", 4, data, &length, 0);
+	rv = (module->C_EncryptMessageNext) (session, "encrypt-param", 13, (CK_BYTE_PTR)"blah", 4,
+	                                     data, &length, 0);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
@@ -2170,18 +2174,18 @@ test_message_decrypt (void)
 
 	/* invalid session */
 	length = sizeof (data);
-	rv = (module->C_DecryptMessage) (0, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	rv = (module->C_DecryptMessage) (0, "decrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* not initialized */
 	length = sizeof (data);
-	rv = (module->C_DecryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	rv = (module->C_DecryptMessage) (session, "decrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = (module->C_MessageDecryptInit) (session, &mech, MOCK_PRIVATE_KEY_CAPITALIZE);
 	assert_num_eq (rv, CKR_OK);
 
-	/* params not supported yet */
+	/* wrong param */
 	length = sizeof (data);
 	rv = (module->C_DecryptMessage) (session, "whatever", 8, NULL, 0, (CK_BYTE_PTR)"BLAh", 4,
 	                                 data, &length);
@@ -2189,12 +2193,12 @@ test_message_decrypt (void)
 
 	/* associated data not supported yet */
 	length = sizeof (data);
-	rv = (module->C_DecryptMessage) (session, NULL, 0, (CK_BYTE_PTR)"other data", 10,
+	rv = (module->C_DecryptMessage) (session, "decrypt-param", 13, (CK_BYTE_PTR)"other data", 10,
 	                                 (CK_BYTE_PTR)"BLAh", 4, data, &length);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	length = sizeof (data);
-	rv = (module->C_DecryptMessage) (session, NULL, 0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
+	rv = (module->C_DecryptMessage) (session, "decrypt-param", 13, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, data, &length);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (4, length);
@@ -2202,32 +2206,32 @@ test_message_decrypt (void)
 
 	/* multi-part */
 	/* invalid session */
-	rv = (module->C_DecryptMessageBegin) (0, NULL, 0, NULL, 0);
+	rv = (module->C_DecryptMessageBegin) (0, "decrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* params not supported yet */
-	rv = (module->C_DecryptMessageBegin) (session, (void *)"param", 5, NULL, 0);
+	/* wrong parameter */
+	rv = (module->C_DecryptMessageBegin) (session, "param", 5, NULL, 0);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	/* associated data not supported yet */
-	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, (CK_BYTE_PTR)"data", 4);
+	rv = (module->C_DecryptMessageBegin) (session, "decrypt-param", 13, (CK_BYTE_PTR)"data", 4);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, NULL, 0);
+	rv = (module->C_DecryptMessageBegin) (session, "decrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_OK);
 
 	/* session invalid */
 	length = sizeof (data);
-	rv = (module->C_DecryptMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 4, data, &length, 0);
+	rv = (module->C_DecryptMessageNext) (0, "decrypt-param", 13, (CK_BYTE_PTR)"sLuRM", 4, data, &length, 0);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* parameters not supported yet */
+	/* wrong parameter */
 	length = sizeof (data);
 	rv = (module->C_DecryptMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 4, data, &length, 0);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	length = sizeof (data);
-	rv = (module->C_DecryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, data, &length,
+	rv = (module->C_DecryptMessageNext) (session, "decrypt-param", 13, (CK_BYTE_PTR)"sLuRM", 5, data, &length,
 	                                     CKF_END_OF_MESSAGE);
 	assert_num_eq (rv, CKR_OK);
 
@@ -2242,12 +2246,12 @@ test_message_decrypt (void)
 	assert_num_eq (rv, CKR_OK);
 
 	/* operation not active */
-	rv = (module->C_DecryptMessageBegin) (session, NULL, 0, NULL, 0);
+	rv = (module->C_DecryptMessageBegin) (session, "decrypt-param", 13, NULL, 0);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
 	length = sizeof (data);
-	rv = (module->C_DecryptMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, data, &length, 0);
+	rv = (module->C_DecryptMessageNext) (session, "decrypt-param", 13, (CK_BYTE_PTR)"bLAH", 4, data, &length, 0);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
@@ -2298,18 +2302,18 @@ test_message_sign (void)
 
 	/* invalid session */
 	length = sizeof (signature);
-	rv = (module->C_SignMessage) (0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	rv = (module->C_SignMessage) (0, "sign-param", 10, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* not initialized */
 	length = sizeof (signature);
-	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	rv = (module->C_SignMessage) (session, "sign-param", 10, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = (module->C_MessageSignInit) (session, &mech, MOCK_PRIVATE_KEY_PREFIX);
 	assert_num_eq (rv, CKR_OK);
 
-	/* params not supported yet */
+	/* wrong param */
 	length = sizeof (signature);
 	rv = (module->C_SignMessage) (session, "whatever", 8, (CK_BYTE_PTR)"BLAh", 4,
 	                              signature, &length);
@@ -2317,14 +2321,14 @@ test_message_sign (void)
 
 	/* For context specific signatures, we require login */
 	length = sizeof (signature);
-	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	rv = (module->C_SignMessage) (session, "sign-param", 10, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
 	assert_num_eq (rv, CKR_USER_NOT_LOGGED_IN);
 
 	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
 	assert (rv == CKR_OK);
 
 	length = sizeof (signature);
-	rv = (module->C_SignMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
+	rv = (module->C_SignMessage) (session, "sign-param", 10, (CK_BYTE_PTR)"BLAh", 4, signature, &length);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (13, length);
@@ -2332,46 +2336,46 @@ test_message_sign (void)
 
 	/* multi-part */
 	/* invalid session */
-	rv = (module->C_SignMessageBegin) (0, NULL, 0);
+	rv = (module->C_SignMessageBegin) (0, "sign-param", 10);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* params not supported yet */
+	/* wrong param */
 	rv = (module->C_SignMessageBegin) (session, (void *)"param", 5);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_SignMessageBegin) (session, NULL, 0);
+	rv = (module->C_SignMessageBegin) (session, "sign-param", 10);
 	assert_num_eq (rv, CKR_OK);
 
 	/* session invalid */
 	length = sizeof (signature);
-	rv = (module->C_SignMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 4, signature, &length);
+	rv = (module->C_SignMessageNext) (0, "sign-param", 10, (CK_BYTE_PTR)"sLuRM", 4, signature, &length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* parameters not supported yet */
+	/* wrong parameter */
 	length = sizeof (signature);
 	rv = (module->C_SignMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 4,
 	                                  signature, &length);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
 	length = sizeof (signature);
-	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
+	rv = (module->C_SignMessageNext) (session, "sign-param", 10, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
 	assert_num_eq (rv, CKR_USER_NOT_LOGGED_IN);
 
 	rv = (module->C_Login) (session, CKU_CONTEXT_SPECIFIC, (CK_BYTE_PTR)"booo", 4);
 	assert_num_eq (rv, CKR_OK);
 
 	length = sizeof (signature);
-	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
+	rv = (module->C_SignMessageNext) (session, "sign-param", 10, (CK_BYTE_PTR)"sLuRM", 5, NULL, NULL);
 	assert_num_eq (rv, CKR_OK);
 
 	/* get the size only */
 	length = 0;
-	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"Other", 5, NULL, &length);
+	rv = (module->C_SignMessageNext) (session, "sign-param", 10, (CK_BYTE_PTR)"Other", 5, NULL, &length);
 	assert_num_eq (rv, CKR_OK);
 	assert_num_eq (14, length);
 
 	length = sizeof (signature);
-	rv = (module->C_SignMessageNext) (session, NULL, 0, NULL, 0, signature, &length);
+	rv = (module->C_SignMessageNext) (session, "sign-param", 10, NULL, 0, signature, &length);
 	assert_num_eq (rv, CKR_OK);
 
 	assert_num_eq (14, length);
@@ -2385,12 +2389,12 @@ test_message_sign (void)
 	assert_num_eq (rv, CKR_OK);
 
 	/* operation not active */
-	rv = (module->C_SignMessageBegin) (session, NULL, 0);
+	rv = (module->C_SignMessageBegin) (session, "sign-param", 10);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
 	length = sizeof (signature);
-	rv = (module->C_SignMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
+	rv = (module->C_SignMessageNext) (session, "sign-param", 10, (CK_BYTE_PTR)"bLAH", 4, signature, &length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
@@ -2442,55 +2446,56 @@ test_message_verify (void)
 	/* invalid session */
 	length = 13;
 	memcpy (signature, "prefix:value4", length);
-	rv = (module->C_VerifyMessage) (0, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	rv = (module->C_VerifyMessage) (0, "verify-param", 12, (CK_BYTE_PTR)"BLAh", 4, signature, length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* not initialized */
-	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	rv = (module->C_VerifyMessage) (session, "verify-param", 12, (CK_BYTE_PTR)"BLAh", 4, signature, length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = (module->C_MessageVerifyInit) (session, &mech, MOCK_PUBLIC_KEY_PREFIX);
 	assert_num_eq (rv, CKR_OK);
 
-	/* params not supported yet */
+	/* wrong param */
 	rv = (module->C_VerifyMessage) (session, "whatever", 8, (CK_BYTE_PTR)"BLAh", 4,
 	                                signature, length);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	rv = (module->C_VerifyMessage) (session, "verify-param", 12, (CK_BYTE_PTR)"BLAh", 4, signature, length);
 	assert_num_eq (rv, CKR_OK);
 
 	/* Wrong signature */
 	memcpy (signature, "prefix:value5", length);
-	rv = (module->C_VerifyMessage) (session, NULL, 0, (CK_BYTE_PTR)"BLAh", 4, signature, length);
+	rv = (module->C_VerifyMessage) (session, "verify-param", 12, (CK_BYTE_PTR)"BLAh", 4, signature, length);
 	assert_num_eq (rv, CKR_SIGNATURE_INVALID);
 
 	/* multi-part */
 	/* invalid session */
-	rv = (module->C_VerifyMessageBegin) (0, NULL, 0);
+	rv = (module->C_VerifyMessageBegin) (0, "verify-param", 12);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* params not supported yet */
+	/* wrong param */
 	rv = (module->C_VerifyMessageBegin) (session, (void *)"param", 5);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_VerifyMessageBegin) (session, NULL, 0);
+	rv = (module->C_VerifyMessageBegin) (session, "verify-param", 12);
 	assert_num_eq (rv, CKR_OK);
 
 	/* session invalid */
 	length = 14;
 	memcpy (signature, "prefix:value10", length);
-	rv = (module->C_VerifyMessageNext) (0, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, signature, length);
+	rv = (module->C_VerifyMessageNext) (0, "verify-param", 12, (CK_BYTE_PTR)"sLuRM", 5, signature, length);
 	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
-	/* parameters not supported yet */
+	/* wrong param */
 	rv = (module->C_VerifyMessageNext) (session, "param", 5, (CK_BYTE_PTR)"sLuRM", 5, NULL, 0);
 	assert_num_eq (rv, CKR_ARGUMENTS_BAD);
 
-	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"sLuRM", 5, NULL, 0);
+	rv = (module->C_VerifyMessageNext) (session, "verify-param", 12, (CK_BYTE_PTR)"sLuRM", 5, NULL, 0);
 	assert_num_eq (rv, CKR_OK);
 
-	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"Other", 5, signature, length);
+	rv = (module->C_VerifyMessageNext) (session, "verify-param", 12, (CK_BYTE_PTR)"Other", 5,
+	                                    signature, length);
 	assert_num_eq (rv, CKR_OK);
 
 	/* invalid session */
@@ -2501,11 +2506,12 @@ test_message_verify (void)
 	assert_num_eq (rv, CKR_OK);
 
 	/* operation not active */
-	rv = (module->C_VerifyMessageBegin) (session, NULL, 0);
+	rv = (module->C_VerifyMessageBegin) (session, "verify-param", 12);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
-	rv = (module->C_VerifyMessageNext) (session, NULL, 0, (CK_BYTE_PTR)"bLAH", 4, signature, length);
+	rv = (module->C_VerifyMessageNext) (session, "verify-param", 12, (CK_BYTE_PTR)"bLAH", 4,
+	                                    signature, length);
 	assert_num_eq (rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	/* operation not active */
