@@ -1,4 +1,2 @@
 EXPORTS
 C_GetFunctionList
-C_GetInterface
-C_GetInterfaceList

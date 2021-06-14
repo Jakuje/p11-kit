@@ -230,7 +230,9 @@ EXTRA_DIST += \
 	p11-kit/libp11-kit.map \
 	p11-kit/libp11-kit-0.dll.def \
 	p11-kit/p11-module.map \
+	p11-kit/p11v3-module.map \
 	p11-kit/p11-module.def \
+	p11-kit/p11v3-module.def \
 	p11-kit/pkcs11-gnu.c \
 	$(NULL)
 
