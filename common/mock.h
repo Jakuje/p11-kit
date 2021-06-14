@@ -1177,12 +1177,19 @@ CK_RV        mock_X_LoginUser__invalid_handle            (CK_X_FUNCTION_LIST *se
                                                           CK_UTF8CHAR_PTR username,
                                                           CK_ULONG username_len);
 
+CK_RV        mock_C_SessionCancel                        (CK_SESSION_HANDLE session,
+                                                          CK_FLAGS flags);
+
 CK_RV        mock_C_SessionCancel__invalid_handle        (CK_SESSION_HANDLE session,
                                                           CK_FLAGS flags);
 
 CK_RV        mock_X_SessionCancel__invalid_handle        (CK_X_FUNCTION_LIST *self,
                                                           CK_SESSION_HANDLE session,
                                                           CK_FLAGS flags);
+
+CK_RV        mock_C_MessageEncryptInit                   (CK_SESSION_HANDLE session,
+                                                          CK_MECHANISM_PTR mechanism,
+                                                          CK_OBJECT_HANDLE key);
 
 CK_RV        mock_C_MessageEncryptInit__invalid_handle   (CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
@@ -1192,6 +1199,16 @@ CK_RV        mock_X_MessageEncryptInit__invalid_handle   (CK_X_FUNCTION_LIST *se
                                                           CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
                                                           CK_OBJECT_HANDLE key);
+
+CK_RV        mock_C_EncryptMessage                       (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR associated_data,
+                                                          CK_ULONG associated_data_len,
+                                                          CK_BYTE_PTR plaintext,
+                                                          CK_ULONG plaintext_len,
+                                                          CK_BYTE_PTR ciphertext,
+                                                          CK_ULONG_PTR ciphertext_len);
 
 CK_RV        mock_C_EncryptMessage__invalid_handle       (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1214,6 +1231,12 @@ CK_RV        mock_X_EncryptMessage__invalid_handle       (CK_X_FUNCTION_LIST *se
                                                           CK_BYTE_PTR ciphertext,
                                                           CK_ULONG_PTR ciphertext_len);
 
+CK_RV        mock_C_EncryptMessageBegin                  (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR associated_data,
+                                                          CK_ULONG associated_data_len);
+
 CK_RV        mock_C_EncryptMessageBegin__invalid_handle  (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len,
@@ -1226,6 +1249,15 @@ CK_RV        mock_X_EncryptMessageBegin__invalid_handle  (CK_X_FUNCTION_LIST *se
                                                           CK_ULONG parameter_len,
                                                           CK_BYTE_PTR associated_data,
                                                           CK_ULONG associated_data_len);
+
+CK_RV        mock_C_EncryptMessageNext                   (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR plaintext_part,
+                                                          CK_ULONG plaintext_part_len,
+                                                          CK_BYTE_PTR ciphertext_part,
+                                                          CK_ULONG_PTR ciphertext_part_len,
+                                                          CK_FLAGS flags);
 
 CK_RV        mock_C_EncryptMessageNext__invalid_handle   (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1246,10 +1278,16 @@ CK_RV        mock_X_EncryptMessageNext__invalid_handle   (CK_X_FUNCTION_LIST *se
                                                           CK_ULONG_PTR ciphertext_part_len,
                                                           CK_FLAGS flags);
 
+CK_RV        mock_C_MessageEncryptFinal                  (CK_SESSION_HANDLE session);
+
 CK_RV        mock_C_MessageEncryptFinal__invalid_handle  (CK_SESSION_HANDLE session);
 
 CK_RV        mock_X_MessageEncryptFinal__invalid_handle  (CK_X_FUNCTION_LIST *self,
                                                           CK_SESSION_HANDLE session);
+
+CK_RV        mock_C_MessageDecryptInit                   (CK_SESSION_HANDLE session,
+                                                          CK_MECHANISM_PTR mechanism,
+                                                          CK_OBJECT_HANDLE key);
 
 CK_RV        mock_C_MessageDecryptInit__invalid_handle   (CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
@@ -1259,6 +1297,16 @@ CK_RV        mock_X_MessageDecryptInit__invalid_handle   (CK_X_FUNCTION_LIST *se
                                                           CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
                                                           CK_OBJECT_HANDLE key);
+
+CK_RV        mock_C_DecryptMessage                       (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR associated_data,
+                                                          CK_ULONG associated_data_len,
+                                                          CK_BYTE_PTR ciphertext,
+                                                          CK_ULONG ciphertext_len,
+                                                          CK_BYTE_PTR plaintext,
+                                                          CK_ULONG_PTR plaintext_len);
 
 CK_RV        mock_C_DecryptMessage__invalid_handle       (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1281,6 +1329,12 @@ CK_RV        mock_X_DecryptMessage__invalid_handle       (CK_X_FUNCTION_LIST *se
                                                           CK_BYTE_PTR plaintext,
                                                           CK_ULONG_PTR plaintext_len);
 
+CK_RV        mock_C_DecryptMessageBegin                  (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR associated_data,
+                                                          CK_ULONG associated_data_len);
+
 CK_RV        mock_C_DecryptMessageBegin__invalid_handle  (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len,
@@ -1293,6 +1347,15 @@ CK_RV        mock_X_DecryptMessageBegin__invalid_handle  (CK_X_FUNCTION_LIST *se
                                                           CK_ULONG parameter_len,
                                                           CK_BYTE_PTR associated_data,
                                                           CK_ULONG associated_data_len);
+
+CK_RV        mock_C_DecryptMessageNext                   (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR ciphertext_part,
+                                                          CK_ULONG ciphertext_part_len,
+                                                          CK_BYTE_PTR plaintext_part,
+                                                          CK_ULONG_PTR plaintext_part_len,
+                                                          CK_FLAGS flags);
 
 CK_RV        mock_C_DecryptMessageNext__invalid_handle   (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1313,10 +1376,16 @@ CK_RV        mock_X_DecryptMessageNext__invalid_handle   (CK_X_FUNCTION_LIST *se
                                                           CK_ULONG_PTR plaintext_part_len,
                                                           CK_FLAGS flags);
 
+CK_RV        mock_C_MessageDecryptFinal                  (CK_SESSION_HANDLE session);
+
 CK_RV        mock_C_MessageDecryptFinal__invalid_handle  (CK_SESSION_HANDLE session);
 
 CK_RV        mock_X_MessageDecryptFinal__invalid_handle  (CK_X_FUNCTION_LIST *self,
                                                           CK_SESSION_HANDLE session);
+
+CK_RV        mock_C_MessageSignInit                       (CK_SESSION_HANDLE session,
+                                                          CK_MECHANISM_PTR mechanism,
+                                                          CK_OBJECT_HANDLE key);
 
 CK_RV        mock_C_MessageSignInit__invalid_handle       (CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
@@ -1326,6 +1395,14 @@ CK_RV        mock_X_MessageSignInit__invalid_handle       (CK_X_FUNCTION_LIST *s
                                                           CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
                                                           CK_OBJECT_HANDLE key);
+
+CK_RV        mock_C_SignMessage                          (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR data,
+                                                          CK_ULONG data_len,
+                                                          CK_BYTE_PTR signature,
+                                                          CK_ULONG_PTR signature_len);
 
 CK_RV        mock_C_SignMessage__invalid_handle          (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1344,6 +1421,10 @@ CK_RV        mock_X_SignMessage__invalid_handle          (CK_X_FUNCTION_LIST *se
                                                           CK_BYTE_PTR signature,
                                                           CK_ULONG_PTR signature_len);
 
+CK_RV        mock_C_SignMessageBegin                     (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len);
+
 CK_RV        mock_C_SignMessageBegin__invalid_handle     (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len);
@@ -1352,6 +1433,14 @@ CK_RV        mock_X_SignMessageBegin__invalid_handle     (CK_X_FUNCTION_LIST *se
                                                           CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len);
+
+CK_RV        mock_C_SignMessageNext                      (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR data,
+                                                          CK_ULONG data_len,
+                                                          CK_BYTE_PTR signature,
+                                                          CK_ULONG_PTR signature_len);
 
 CK_RV        mock_C_SignMessageNext__invalid_handle      (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1370,10 +1459,16 @@ CK_RV        mock_X_SignMessageNext__invalid_handle      (CK_X_FUNCTION_LIST *se
                                                           CK_BYTE_PTR signature,
                                                           CK_ULONG_PTR signature_len);
 
+CK_RV        mock_C_MessageSignFinal                     (CK_SESSION_HANDLE session);
+
 CK_RV        mock_C_MessageSignFinal__invalid_handle     (CK_SESSION_HANDLE session);
 
 CK_RV        mock_X_MessageSignFinal__invalid_handle     (CK_X_FUNCTION_LIST *self,
                                                           CK_SESSION_HANDLE session);
+
+CK_RV        mock_C_MessageVerifyInit                    (CK_SESSION_HANDLE session,
+                                                          CK_MECHANISM_PTR mechanism,
+                                                          CK_OBJECT_HANDLE key);
 
 CK_RV        mock_C_MessageVerifyInit__invalid_handle    (CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
@@ -1383,6 +1478,14 @@ CK_RV        mock_X_MessageVerifyInit__invalid_handle    (CK_X_FUNCTION_LIST *se
                                                           CK_SESSION_HANDLE session,
                                                           CK_MECHANISM_PTR mechanism,
                                                           CK_OBJECT_HANDLE key);
+
+CK_RV        mock_C_VerifyMessage                        (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR data,
+                                                          CK_ULONG data_len,
+                                                          CK_BYTE_PTR signature,
+                                                          CK_ULONG signature_len);
 
 CK_RV        mock_C_VerifyMessage__invalid_handle        (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1401,6 +1504,10 @@ CK_RV        mock_X_VerifyMessage__invalid_handle        (CK_X_FUNCTION_LIST *se
                                                           CK_BYTE_PTR signature,
                                                           CK_ULONG signature_len);
 
+CK_RV        mock_C_VerifyMessageBegin                   (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len);
+
 CK_RV        mock_C_VerifyMessageBegin__invalid_handle   (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len);
@@ -1409,6 +1516,14 @@ CK_RV        mock_X_VerifyMessageBegin__invalid_handle   (CK_X_FUNCTION_LIST *se
                                                           CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
                                                           CK_ULONG parameter_len);
+
+CK_RV        mock_C_VerifyMessageNext                    (CK_SESSION_HANDLE session,
+                                                          CK_VOID_PTR parameter,
+                                                          CK_ULONG parameter_len,
+                                                          CK_BYTE_PTR data,
+                                                          CK_ULONG data_len,
+                                                          CK_BYTE_PTR signature,
+                                                          CK_ULONG signature_len);
 
 CK_RV        mock_C_VerifyMessageNext__invalid_handle    (CK_SESSION_HANDLE session,
                                                           CK_VOID_PTR parameter,
@@ -1426,6 +1541,8 @@ CK_RV        mock_X_VerifyMessageNext__invalid_handle    (CK_X_FUNCTION_LIST *se
                                                           CK_ULONG data_len,
                                                           CK_BYTE_PTR signature,
                                                           CK_ULONG signature_len);
+
+CK_RV        mock_C_MessageVerifyFinal                   (CK_SESSION_HANDLE session);
 
 CK_RV        mock_C_MessageVerifyFinal__invalid_handle   (CK_SESSION_HANDLE session);
 
