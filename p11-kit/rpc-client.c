@@ -304,7 +304,6 @@ proto_read_byte_array (p11_rpc_message *msg,
 	uint32_t length;
 	size_t vlen;
 
-	assert (len != NULL);
 	assert (msg != NULL);
 	assert (msg->input != NULL);
 
@@ -320,7 +319,8 @@ proto_read_byte_array (p11_rpc_message *msg,
 		if (!p11_rpc_buffer_get_uint32 (msg->input, &msg->parsed, &length))
 			return PARSE_ERROR;
 
-		*len = length;
+		if (len != NULL)
+			*len = length;
 
 		if (arr)
 			return CKR_BUFFER_TOO_SMALL;
@@ -332,7 +332,8 @@ proto_read_byte_array (p11_rpc_message *msg,
 	if (!p11_rpc_buffer_get_byte_array (msg->input, &msg->parsed, &val, &vlen))
 		return PARSE_ERROR;
 
-	*len = vlen;
+	if (len != NULL)
+		*len = vlen;
 
 	/* Just asking us for size */
 	if (!arr)
@@ -591,6 +592,10 @@ proto_read_sesssion_info (p11_rpc_message *msg,
 	if (!p11_rpc_message_write_byte_buffer (&_msg, arr ? *len : 0)) \
 		{ _ret = CKR_HOST_MEMORY; goto _cleanup; }
 
+#define IN_BYTE_BUFFER_NULL(arr, len) \
+	if (!p11_rpc_message_write_byte_buffer_null (&_msg, len)) \
+		{ _ret = CKR_HOST_MEMORY; goto _cleanup; }
+
 #define IN_BYTE_ARRAY(arr, len) \
 	if (len != 0 && arr == NULL) \
 		{ _ret = CKR_ARGUMENTS_BAD; goto _cleanup; } \
@@ -644,6 +649,10 @@ proto_read_sesssion_info (p11_rpc_message *msg,
 		_ret = CKR_ARGUMENTS_BAD; \
 	if (_ret == CKR_OK) \
 		_ret = proto_read_byte_array (&_msg, (arr), (len), *(len));
+
+#define OUT_BYTE_ARRAY_NULL(arr, len)  \
+	_ret = proto_read_byte_array (&_msg, (arr), (len), (len) ? *(len) : 0); \
+	if (_ret != CKR_OK) goto _cleanup;
 
 #define OUT_ULONG_ARRAY(a, len) \
 	if (len == NULL) \
@@ -2107,6 +2116,7 @@ rpc_C_SignMessageBegin (CK_X_FUNCTION_LIST *self,
 	BEGIN_CALL_OR (C_SignMessageBegin, self, CKR_SESSION_HANDLE_INVALID);
 		IN_ULONG (session)
 		IN_BYTE_ARRAY (parameter, parameter_len)
+
 	PROCESS_CALL;
 	END_CALL;
 }
@@ -2125,9 +2135,9 @@ rpc_C_SignMessageNext (CK_X_FUNCTION_LIST *self,
 		IN_ULONG (session)
 		IN_BYTE_ARRAY (parameter, parameter_len)
 		IN_BYTE_ARRAY (data, data_len)
-		IN_BYTE_BUFFER (signature, signature_len);
+		IN_BYTE_BUFFER_NULL (signature, signature_len);
 	PROCESS_CALL;
-		OUT_BYTE_ARRAY (signature, signature_len)
+		OUT_BYTE_ARRAY_NULL (signature, signature_len)
 	END_CALL;
 }
 

@@ -345,6 +345,7 @@ c_tests += \
 	test-proxy3 \
 	test-iter \
 	test-rpc \
+	test-rpc3 \
 	$(NULL)
 
 if !OS_WIN32
@@ -384,6 +385,9 @@ test_proxy3_LDADD = $(p11_kit_LIBS)
 test_rpc_SOURCES = p11-kit/test-rpc.c
 test_rpc_LDADD = $(p11_kit_LIBS)
 
+test_rpc3_SOURCES = p11-kit/test-rpc3.c
+test_rpc3_LDADD = $(p11_kit_LIBS)
+
 test_server_SOURCES = p11-kit/test-server.c
 test_server_LDADD = $(p11_kit_LIBS)
 test_server_CFLAGS = $(AM_CPPFLAGS) $(libp11_kit_testable_la_CFLAGS)
@@ -410,12 +414,17 @@ c_tests += \
 	test-virtual \
 	test-managed \
 	test-log \
+	test-log3 \
 	test-filter \
 	test-transport \
+	test-transport3 \
 	$(NULL)
 
 test_log_SOURCES = p11-kit/test-log.c
 test_log_LDADD = $(p11_kit_LIBS)
+
+test_log3_SOURCES = p11-kit/test-log3.c
+test_log3_LDADD = $(p11_kit_LIBS)
 
 test_filter_SOURCES = p11-kit/test-filter.c
 test_filter_LDADD = $(p11_kit_LIBS)
@@ -427,14 +436,21 @@ test_transport_SOURCES = p11-kit/test-transport.c
 test_transport_LDADD = $(p11_kit_LIBS)
 test_transport_CFLAGS = $(AM_CPPFLAGS) $(libp11_kit_testable_la_CFLAGS)
 
+test_transport3_SOURCES = p11-kit/test-transport3.c
+test_transport3_LDADD = $(p11_kit_LIBS)
+test_transport3_CFLAGS = $(AM_CPPFLAGS) $(libp11_kit_testable_la_CFLAGS)
+
 test_virtual_SOURCES = p11-kit/test-virtual.c
 test_virtual_LDADD = $(p11_kit_LIBS)
 
 check_LTLIBRARIES += \
 	mock-one.la \
+	mock-v3-one.la \
 	mock-two.la \
+	mock-v3-two.la \
 	mock-three.la \
 	mock-four.la \
+	mock-v3-four.la \
 	mock-five.la \
 	mock-seven.la \
 	mock-eight.la \
@@ -448,7 +464,7 @@ mock_one_la_LDFLAGS = \
 	-no-undefined -export-symbols-regex 'C_GetFunctionList'
 
 mock_v3_one_la_SOURCES = p11-kit/mock-module-v3-ep.c
-mock_v3_one_la_LIBADD = libp11-test.la libp11-common.la
+mock_v3_one_la_LIBADD = $(mock_one_la_LIBADD)
 mock_v3_one_la_LDFLAGS = \
 	-module -avoid-version -rpath /nowhere \
 	-no-undefined -export-symbols-regex 'C_GetFunctionList|C_GetInterface'
@@ -457,6 +473,10 @@ mock_two_la_SOURCES = p11-kit/mock-module-ep2.c
 mock_two_la_LDFLAGS = $(mock_one_la_LDFLAGS)
 mock_two_la_LIBADD = $(mock_one_la_LIBADD)
 
+mock_v3_two_la_SOURCES = p11-kit/mock-module-v3-ep2.c
+mock_v3_two_la_LDFLAGS = $(mock_v3_one_la_LDFLAGS)
+mock_v3_two_la_LIBADD = $(mock_v3_one_la_LIBADD)
+
 mock_three_la_SOURCES = $(mock_one_la_SOURCES)
 mock_three_la_LDFLAGS = $(mock_one_la_LDFLAGS)
 mock_three_la_LIBADD = $(mock_one_la_LIBADD)
@@ -464,6 +484,10 @@ mock_three_la_LIBADD = $(mock_one_la_LIBADD)
 mock_four_la_SOURCES = $(mock_one_la_SOURCES)
 mock_four_la_LDFLAGS = $(mock_one_la_LDFLAGS)
 mock_four_la_LIBADD = $(mock_one_la_LIBADD)
+
+mock_v3_four_la_SOURCES = $(mock_v3_one_la_SOURCES)
+mock_v3_four_la_LDFLAGS = $(mock_v3_one_la_LDFLAGS)
+mock_v3_four_la_LIBADD = $(mock_v3_one_la_LIBADD)
 
 mock_five_la_SOURCES = p11-kit/mock-module-ep3.c
 mock_five_la_LDFLAGS = $(mock_one_la_LDFLAGS)

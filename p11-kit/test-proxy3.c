@@ -59,6 +59,7 @@
 
 /* This is the proxy module entry point in proxy.c, and linked to this test */
 CK_RV C_GetInterface (CK_UTF8CHAR_PTR, CK_VERSION_PTR, CK_INTERFACE_PTR_PTR, CK_FLAGS);
+CK_RV C_GetInterfaceList (CK_INTERFACE_PTR interfaces_list, CK_ULONG_PTR count);
 
 static CK_SLOT_ID mock_slot_one_id;
 static CK_SLOT_ID mock_slot_two_id;

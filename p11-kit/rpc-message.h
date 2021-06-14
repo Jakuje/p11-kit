@@ -229,14 +229,14 @@ static const p11_rpc_call p11_rpc_calls[] = {
 	{ P11_RPC_CALL_C_LoginUser,            "C_LoginUser",            "uuayay",  ""                     },
 	{ P11_RPC_CALL_C_SessionCancel,        "C_SessionCancel",        "uu",      ""                     },
 	{ P11_RPC_CALL_C_MessageEncryptInit,   "C_MessageEncryptInit",   "uMu",     ""                     },
-	{ P11_RPC_CALL_C_EncryptMessage,       "C_EncryptMessage",       "uayayayfy", "ay"                   },
+	{ P11_RPC_CALL_C_EncryptMessage,       "C_EncryptMessage",       "uayayayfy", "ay"                 },
 	{ P11_RPC_CALL_C_EncryptMessageBegin,  "C_EncryptMessageBegin",  "uayay",   ""                     },
-	{ P11_RPC_CALL_C_EncryptMessageNext,   "C_EncryptMessageNext",   "uayayfyu", "ay"                   },
+	{ P11_RPC_CALL_C_EncryptMessageNext,   "C_EncryptMessageNext",   "uayayfyu", "ay"                  },
 	{ P11_RPC_CALL_C_MessageEncryptFinal,  "C_MessageEncryptFinal",  "u",       ""                     },
 	{ P11_RPC_CALL_C_MessageDecryptInit,   "C_MessageDecryptInit",   "uMu",     ""                     },
-	{ P11_RPC_CALL_C_DecryptMessage,       "C_DecryptMessage",       "uayayayfy", "ay"                   },
+	{ P11_RPC_CALL_C_DecryptMessage,       "C_DecryptMessage",       "uayayayfy", "ay"                 },
 	{ P11_RPC_CALL_C_DecryptMessageBegin,  "C_DecryptMessageBegin",  "uayay",   ""                     },
-	{ P11_RPC_CALL_C_DecryptMessageNext,   "C_DecryptMessageNext",   "uayayufy", "ay"                   },
+	{ P11_RPC_CALL_C_DecryptMessageNext,   "C_DecryptMessageNext",   "uayayfyu", "ay"                  },
 	{ P11_RPC_CALL_C_MessageDecryptFinal,  "C_MessageDecryptFinal",  "u",       ""                     },
 	{ P11_RPC_CALL_C_MessageSignInit,      "C_MessageSignInit",      "uMu",     ""                     },
 	{ P11_RPC_CALL_C_SignMessage,          "C_SignMessage",          "uayayfy", "ay"                   },
@@ -330,6 +330,9 @@ bool             p11_rpc_message_write_space_string      (p11_rpc_message *msg,
 
 bool             p11_rpc_message_write_byte_buffer       (p11_rpc_message *msg,
                                                           CK_ULONG count);
+
+bool             p11_rpc_message_write_byte_buffer_null  (p11_rpc_message *msg,
+                                                          CK_ULONG_PTR count);
 
 bool             p11_rpc_message_write_byte_array        (p11_rpc_message *msg,
                                                           CK_BYTE_PTR arr,

@@ -30,7 +30,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  *
- * Author: Stef Walter <stefw@gnome.org>
+ * Authors: Stef Walter <stefw@gnome.org>
+ *          Jakub Jelen <jjelen@redhat.com>
  */
 
 #include "config.h"
@@ -89,10 +90,12 @@ typedef struct {
 } Wrapper;
 
 static CK_FUNCTION_LIST_3_0 *fixed_closures[P11_VIRTUAL_MAX_FIXED];
+static CK_INTERFACE *fixed_interfaces[P11_VIRTUAL_MAX_FIXED];
 
 static Wrapper          *create_fixed_wrapper   (p11_virtual         *virt,
                                                  size_t               index,
                                                  p11_destroyer        destroyer);
+static CK_INTERFACE     *create_fixed_interface (CK_FUNCTION_LIST_3_0_PTR functions);
 static CK_FUNCTION_LIST *
                          p11_virtual_wrap_fixed (p11_virtual         *virt,
                                                  p11_destroyer        destroyer);
@@ -990,14 +993,14 @@ binding_C_GetInterface (ffi_cif *cif,
 	CK_INTERFACE_PTR *interface = *(CK_INTERFACE_PTR_PTR *)args[2];
 	CK_FLAGS flags = *(CK_FLAGS *)args[3];
 
-	if (interface == NULL) {
+	if (interface_name == NULL) {
 		virtual_interfaces[0].pFunctionList = &wrapper->bound;
 		*interface = &virtual_interfaces[0];
 		*ret = CKR_OK;
 		return;
 	}
 
-	if (strcmp((char *)interface_name, virtual_interfaces[0].pInterfaceName) != 0 ||
+	if (strcmp ((char *)interface_name, virtual_interfaces[0].pInterfaceName) != 0 ||
 	    (version != NULL && (version->major != wrapper->bound.version.major ||
 	                         version->minor != wrapper->bound.version.minor)) ||
 	    ((flags & virtual_interfaces[0].flags) != flags)) {
@@ -1014,13 +1017,13 @@ binding_C_LoginUser (ffi_cif *cif,
                      void *args[],
                      CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_LoginUser(funcs,
-                                  *(CK_SESSION_HANDLE *)args[0],
-                                  *(CK_USER_TYPE *)args[1],
-                                  *(CK_UTF8CHAR_PTR *)args[2],
-                                  *(CK_ULONG *)args[3],
-                                  *(CK_UTF8CHAR_PTR *)args[4],
-                                  *(CK_ULONG *)args[5]);
+	*ret = funcs->C_LoginUser (funcs,
+                                   *(CK_SESSION_HANDLE *)args[0],
+                                   *(CK_USER_TYPE *)args[1],
+                                   *(CK_UTF8CHAR_PTR *)args[2],
+                                   *(CK_ULONG *)args[3],
+                                   *(CK_UTF8CHAR_PTR *)args[4],
+                                   *(CK_ULONG *)args[5]);
 }
 
 static void
@@ -1029,9 +1032,9 @@ binding_C_SessionCancel (ffi_cif *cif,
                          void *args[],
                          CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_SessionCancel(funcs,
-                                      *(CK_SESSION_HANDLE *)args[0],
-                                      *(CK_FLAGS *)args[1]);
+	*ret = funcs->C_SessionCancel (funcs,
+                                       *(CK_SESSION_HANDLE *)args[0],
+                                       *(CK_FLAGS *)args[1]);
 }
 
 static void
@@ -1040,10 +1043,10 @@ binding_C_MessageEncryptInit (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageEncryptInit(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0],
-                                           *(CK_MECHANISM_PTR *)args[1],
-                                           *(CK_OBJECT_HANDLE *)args[2]);
+	*ret = funcs->C_MessageEncryptInit (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0],
+                                            *(CK_MECHANISM_PTR *)args[1],
+                                            *(CK_OBJECT_HANDLE *)args[2]);
 }
 
 static void
@@ -1052,16 +1055,16 @@ binding_C_EncryptMessage (ffi_cif *cif,
                           void *args[],
                           CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_EncryptMessage(funcs,
-                                       *(CK_SESSION_HANDLE *)args[0],
-                                       *(CK_VOID_PTR *)args[1],
-                                       *(CK_ULONG *)args[2],
-                                       *(CK_BYTE_PTR *)args[3],
-                                       *(CK_ULONG *)args[4],
-                                       *(CK_BYTE_PTR *)args[5],
-                                       *(CK_ULONG *)args[6],
-                                       *(CK_BYTE_PTR *)args[7],
-                                       *(CK_ULONG_PTR *)args[8]);
+	*ret = funcs->C_EncryptMessage (funcs,
+                                        *(CK_SESSION_HANDLE *)args[0],
+                                        *(CK_VOID_PTR *)args[1],
+                                        *(CK_ULONG *)args[2],
+                                        *(CK_BYTE_PTR *)args[3],
+                                        *(CK_ULONG *)args[4],
+                                        *(CK_BYTE_PTR *)args[5],
+                                        *(CK_ULONG *)args[6],
+                                        *(CK_BYTE_PTR *)args[7],
+                                        *(CK_ULONG_PTR *)args[8]);
 }
 
 static void
@@ -1070,12 +1073,12 @@ binding_C_EncryptMessageBegin (ffi_cif *cif,
                                void *args[],
                                CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_EncryptMessageBegin(funcs,
-                                            *(CK_SESSION_HANDLE *)args[0],
-                                            *(CK_VOID_PTR *)args[1],
-                                            *(CK_ULONG *)args[2],
-                                            *(CK_BYTE_PTR *)args[3],
-                                            *(CK_ULONG *)args[4]);
+	*ret = funcs->C_EncryptMessageBegin (funcs,
+                                             *(CK_SESSION_HANDLE *)args[0],
+                                             *(CK_VOID_PTR *)args[1],
+                                             *(CK_ULONG *)args[2],
+                                             *(CK_BYTE_PTR *)args[3],
+                                             *(CK_ULONG *)args[4]);
 }
 
 static void
@@ -1084,15 +1087,15 @@ binding_C_EncryptMessageNext (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_EncryptMessageNext(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0],
-                                           *(CK_VOID_PTR *)args[1],
-                                           *(CK_ULONG *)args[2],
-                                           *(CK_BYTE_PTR *)args[3],
-                                           *(CK_ULONG *)args[4],
-                                           *(CK_BYTE_PTR *)args[5],
-                                           *(CK_ULONG_PTR *)args[6],
-                                           *(CK_FLAGS *)args[7]);
+	*ret = funcs->C_EncryptMessageNext (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0],
+                                            *(CK_VOID_PTR *)args[1],
+                                            *(CK_ULONG *)args[2],
+                                            *(CK_BYTE_PTR *)args[3],
+                                            *(CK_ULONG *)args[4],
+                                            *(CK_BYTE_PTR *)args[5],
+                                            *(CK_ULONG_PTR *)args[6],
+                                            *(CK_FLAGS *)args[7]);
 }
 
 static void
@@ -1101,8 +1104,8 @@ binding_C_MessageEncryptFinal (ffi_cif *cif,
                                void *args[],
                                CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageEncryptFinal(funcs,
-                                            *(CK_SESSION_HANDLE *)args[0]);
+	*ret = funcs->C_MessageEncryptFinal (funcs,
+                                             *(CK_SESSION_HANDLE *)args[0]);
 }
 
 static void
@@ -1111,10 +1114,10 @@ binding_C_MessageDecryptInit (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageDecryptInit(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0],
-                                           *(CK_MECHANISM_PTR *)args[1],
-                                           *(CK_OBJECT_HANDLE *)args[2]);
+	*ret = funcs->C_MessageDecryptInit (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0],
+                                            *(CK_MECHANISM_PTR *)args[1],
+                                            *(CK_OBJECT_HANDLE *)args[2]);
 }
 
 static void
@@ -1123,16 +1126,16 @@ binding_C_DecryptMessage (ffi_cif *cif,
                           void *args[],
                           CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_DecryptMessage(funcs,
-                                       *(CK_SESSION_HANDLE *)args[0],
-                                       *(CK_VOID_PTR *)args[1],
-                                       *(CK_ULONG *)args[2],
-                                       *(CK_BYTE_PTR *)args[3],
-                                       *(CK_ULONG *)args[4],
-                                       *(CK_BYTE_PTR *)args[5],
-                                       *(CK_ULONG *)args[6],
-                                       *(CK_BYTE_PTR *)args[7],
-                                       *(CK_ULONG_PTR *)args[8]);
+	*ret = funcs->C_DecryptMessage (funcs,
+                                        *(CK_SESSION_HANDLE *)args[0],
+                                        *(CK_VOID_PTR *)args[1],
+                                        *(CK_ULONG *)args[2],
+                                        *(CK_BYTE_PTR *)args[3],
+                                        *(CK_ULONG *)args[4],
+                                        *(CK_BYTE_PTR *)args[5],
+                                        *(CK_ULONG *)args[6],
+                                        *(CK_BYTE_PTR *)args[7],
+                                        *(CK_ULONG_PTR *)args[8]);
 }
 
 static void
@@ -1141,12 +1144,12 @@ binding_C_DecryptMessageBegin (ffi_cif *cif,
                                void *args[],
                                CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_DecryptMessageBegin(funcs,
-                                            *(CK_SESSION_HANDLE *)args[0],
-                                            *(CK_VOID_PTR *)args[1],
-                                            *(CK_ULONG *)args[2],
-                                            *(CK_BYTE_PTR *)args[3],
-                                            *(CK_ULONG *)args[4]);
+	*ret = funcs->C_DecryptMessageBegin (funcs,
+                                             *(CK_SESSION_HANDLE *)args[0],
+                                             *(CK_VOID_PTR *)args[1],
+                                             *(CK_ULONG *)args[2],
+                                             *(CK_BYTE_PTR *)args[3],
+                                             *(CK_ULONG *)args[4]);
 }
 
 static void
@@ -1155,15 +1158,15 @@ binding_C_DecryptMessageNext (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_DecryptMessageNext(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0],
-                                           *(CK_VOID_PTR *)args[1],
-                                           *(CK_ULONG *)args[2],
-                                           *(CK_BYTE_PTR *)args[3],
-                                           *(CK_ULONG *)args[4],
-                                           *(CK_BYTE_PTR *)args[5],
-                                           *(CK_ULONG_PTR *)args[6],
-                                           *(CK_FLAGS *)args[7]);
+	*ret = funcs->C_DecryptMessageNext (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0],
+                                            *(CK_VOID_PTR *)args[1],
+                                            *(CK_ULONG *)args[2],
+                                            *(CK_BYTE_PTR *)args[3],
+                                            *(CK_ULONG *)args[4],
+                                            *(CK_BYTE_PTR *)args[5],
+                                            *(CK_ULONG_PTR *)args[6],
+                                            *(CK_FLAGS *)args[7]);
 }
 
 static void
@@ -1172,8 +1175,8 @@ binding_C_MessageDecryptFinal (ffi_cif *cif,
                                void *args[],
                                CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageDecryptFinal(funcs,
-                                            *(CK_SESSION_HANDLE *)args[0]);
+	*ret = funcs->C_MessageDecryptFinal (funcs,
+                                             *(CK_SESSION_HANDLE *)args[0]);
 }
 
 static void
@@ -1182,10 +1185,10 @@ binding_C_MessageSignInit (ffi_cif *cif,
                            void *args[],
                            CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageSignInit(funcs,
-                                        *(CK_SESSION_HANDLE *)args[0],
-                                        *(CK_MECHANISM_PTR *)args[1],
-                                        *(CK_OBJECT_HANDLE *)args[2]);
+	*ret = funcs->C_MessageSignInit (funcs,
+                                         *(CK_SESSION_HANDLE *)args[0],
+                                         *(CK_MECHANISM_PTR *)args[1],
+                                         *(CK_OBJECT_HANDLE *)args[2]);
 }
 
 static void
@@ -1194,14 +1197,14 @@ binding_C_SignMessage (ffi_cif *cif,
                        void *args[],
                        CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_SignMessage(funcs,
-                                    *(CK_SESSION_HANDLE *)args[0],
-                                    *(CK_VOID_PTR *)args[1],
-                                    *(CK_ULONG *)args[2],
-                                    *(CK_BYTE_PTR *)args[3],
-                                    *(CK_ULONG *)args[4],
-                                    *(CK_BYTE_PTR *)args[5],
-                                    *(CK_ULONG_PTR *)args[6]);
+	*ret = funcs->C_SignMessage (funcs,
+                                     *(CK_SESSION_HANDLE *)args[0],
+                                     *(CK_VOID_PTR *)args[1],
+                                     *(CK_ULONG *)args[2],
+                                     *(CK_BYTE_PTR *)args[3],
+                                     *(CK_ULONG *)args[4],
+                                     *(CK_BYTE_PTR *)args[5],
+                                     *(CK_ULONG_PTR *)args[6]);
 }
 
 static void
@@ -1210,10 +1213,10 @@ binding_C_SignMessageBegin (ffi_cif *cif,
                             void *args[],
                             CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_SignMessageBegin(funcs,
-                                         *(CK_SESSION_HANDLE *)args[0],
-                                         *(CK_VOID_PTR *)args[1],
-                                         *(CK_ULONG *)args[2]);
+	*ret = funcs->C_SignMessageBegin (funcs,
+                                          *(CK_SESSION_HANDLE *)args[0],
+                                          *(CK_VOID_PTR *)args[1],
+                                          *(CK_ULONG *)args[2]);
 }
 
 static void
@@ -1222,14 +1225,14 @@ binding_C_SignMessageNext (ffi_cif *cif,
                            void *args[],
                            CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_SignMessageNext(funcs,
-                                        *(CK_SESSION_HANDLE *)args[0],
-                                        *(CK_VOID_PTR *)args[1],
-                                        *(CK_ULONG *)args[2],
-                                        *(CK_BYTE_PTR *)args[3],
-                                        *(CK_ULONG *)args[4],
-                                        *(CK_BYTE_PTR *)args[5],
-                                        *(CK_ULONG_PTR *)args[6]);
+	*ret = funcs->C_SignMessageNext (funcs,
+                                         *(CK_SESSION_HANDLE *)args[0],
+                                         *(CK_VOID_PTR *)args[1],
+                                         *(CK_ULONG *)args[2],
+                                         *(CK_BYTE_PTR *)args[3],
+                                         *(CK_ULONG *)args[4],
+                                         *(CK_BYTE_PTR *)args[5],
+                                         *(CK_ULONG_PTR *)args[6]);
 }
 
 static void
@@ -1238,8 +1241,8 @@ binding_C_MessageSignFinal (ffi_cif *cif,
                             void *args[],
                             CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageSignFinal(funcs,
-                                         *(CK_SESSION_HANDLE *)args[0]);
+	*ret = funcs->C_MessageSignFinal (funcs,
+                                          *(CK_SESSION_HANDLE *)args[0]);
 }
 
 static void
@@ -1248,10 +1251,10 @@ binding_C_MessageVerifyInit (ffi_cif *cif,
                              void *args[],
                              CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageVerifyInit(funcs,
-                                          *(CK_SESSION_HANDLE *)args[0],
-                                          *(CK_MECHANISM_PTR *)args[1],
-                                          *(CK_OBJECT_HANDLE *)args[2]);
+	*ret = funcs->C_MessageVerifyInit (funcs,
+                                           *(CK_SESSION_HANDLE *)args[0],
+                                           *(CK_MECHANISM_PTR *)args[1],
+                                           *(CK_OBJECT_HANDLE *)args[2]);
 }
 
 static void
@@ -1260,14 +1263,14 @@ binding_C_VerifyMessage (ffi_cif *cif,
                          void *args[],
                          CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_VerifyMessage(funcs,
-                                      *(CK_SESSION_HANDLE *)args[0],
-                                      *(CK_VOID_PTR *)args[1],
-                                      *(CK_ULONG *)args[2],
-                                      *(CK_BYTE_PTR *)args[3],
-                                      *(CK_ULONG *)args[4],
-                                      *(CK_BYTE_PTR *)args[5],
-                                      *(CK_ULONG *)args[6]);
+	*ret = funcs->C_VerifyMessage (funcs,
+                                       *(CK_SESSION_HANDLE *)args[0],
+                                       *(CK_VOID_PTR *)args[1],
+                                       *(CK_ULONG *)args[2],
+                                       *(CK_BYTE_PTR *)args[3],
+                                       *(CK_ULONG *)args[4],
+                                       *(CK_BYTE_PTR *)args[5],
+                                       *(CK_ULONG *)args[6]);
 }
 
 static void
@@ -1276,10 +1279,10 @@ binding_C_VerifyMessageBegin (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_VerifyMessageBegin(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0],
-                                           *(CK_VOID_PTR *)args[1],
-                                           *(CK_ULONG *)args[2]);
+	*ret = funcs->C_VerifyMessageBegin (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0],
+                                            *(CK_VOID_PTR *)args[1],
+                                            *(CK_ULONG *)args[2]);
 }
 
 static void
@@ -1288,14 +1291,14 @@ binding_C_VerifyMessageNext (ffi_cif *cif,
                              void *args[],
                              CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_VerifyMessageNext(funcs,
-                                          *(CK_SESSION_HANDLE *)args[0],
-                                          *(CK_VOID_PTR *)args[1],
-                                          *(CK_ULONG *)args[2],
-                                          *(CK_BYTE_PTR *)args[3],
-                                          *(CK_ULONG *)args[4],
-                                          *(CK_BYTE_PTR *)args[5],
-                                          *(CK_ULONG *)args[6]);
+	*ret = funcs->C_VerifyMessageNext (funcs,
+                                           *(CK_SESSION_HANDLE *)args[0],
+                                           *(CK_VOID_PTR *)args[1],
+                                           *(CK_ULONG *)args[2],
+                                           *(CK_BYTE_PTR *)args[3],
+                                           *(CK_ULONG *)args[4],
+                                           *(CK_BYTE_PTR *)args[5],
+                                           *(CK_ULONG *)args[6]);
 }
 
 static void
@@ -1304,8 +1307,8 @@ binding_C_MessageVerifyFinal (ffi_cif *cif,
                               void *args[],
                               CK_X_FUNCTION_LIST *funcs)
 {
-	*ret = funcs->C_MessageVerifyFinal(funcs,
-                                           *(CK_SESSION_HANDLE *)args[0]);
+	*ret = funcs->C_MessageVerifyFinal (funcs,
+                                            *(CK_SESSION_HANDLE *)args[0]);
 }
 
 #endif /* FFI_CLOSURES */
@@ -3151,7 +3154,7 @@ base_C_LoginUser (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_LoginUser(session, user_type, pin, pin_len, username, username_len);
+	return funcs->C_LoginUser (session, user_type, pin, pin_len, username, username_len);
 }
 
 static CK_RV
@@ -3163,7 +3166,7 @@ base_C_SessionCancel (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_SessionCancel(session, flags);
+	return funcs->C_SessionCancel (session, flags);
 }
 
 static CK_RV
@@ -3176,7 +3179,7 @@ base_C_MessageEncryptInit (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageEncryptInit(session, mechanism, key);
+	return funcs->C_MessageEncryptInit (session, mechanism, key);
 }
 
 static CK_RV
@@ -3193,10 +3196,11 @@ base_C_EncryptMessage (CK_X_FUNCTION_LIST *self,
 {
 	p11_virtual *virt = (p11_virtual *)self;
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
+
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_EncryptMessage(session, parameter, parameter_len, associated_data, associated_data_len,
-                                       plaintext, plaintext_len, ciphertext, ciphertext_len);
+	return funcs->C_EncryptMessage (session, parameter, parameter_len, associated_data, associated_data_len,
+	                                plaintext, plaintext_len, ciphertext, ciphertext_len);
 }
 
 static CK_RV
@@ -3211,7 +3215,8 @@ base_C_EncryptMessageBegin (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_EncryptMessageBegin(session, parameter, parameter_len, associated_data, associated_data_len);
+	return funcs->C_EncryptMessageBegin (session, parameter, parameter_len,
+	                                     associated_data, associated_data_len);
 }
 
 static CK_RV
@@ -3229,8 +3234,8 @@ base_C_EncryptMessageNext (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_EncryptMessageNext(session, parameter, parameter_len, plaintext_part, plaintext_part_len,
-                                           ciphertext_part, ciphertext_part_len, flags);
+	return funcs->C_EncryptMessageNext (session, parameter, parameter_len, plaintext_part, plaintext_part_len,
+	                                    ciphertext_part, ciphertext_part_len, flags);
 }
 
 static CK_RV
@@ -3241,7 +3246,7 @@ base_C_MessageEncryptFinal (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageEncryptFinal(session);
+	return funcs->C_MessageEncryptFinal (session);
 }
 
 static CK_RV
@@ -3254,7 +3259,7 @@ base_C_MessageDecryptInit (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageDecryptInit(session, mechanism, key);
+	return funcs->C_MessageDecryptInit (session, mechanism, key);
 }
 
 static CK_RV
@@ -3273,8 +3278,8 @@ base_C_DecryptMessage (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_DecryptMessage(session, parameter, parameter_len, associated_data, associated_data_len,
-                                       ciphertext, ciphertext_len, plaintext, plaintext_len);
+	return funcs->C_DecryptMessage (session, parameter, parameter_len, associated_data, associated_data_len,
+	                                ciphertext, ciphertext_len, plaintext, plaintext_len);
 }
 
 static CK_RV
@@ -3289,7 +3294,8 @@ base_C_DecryptMessageBegin (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_DecryptMessageBegin(session, parameter, parameter_len, associated_data, associated_data_len);
+	return funcs->C_DecryptMessageBegin (session, parameter, parameter_len,
+	                                     associated_data, associated_data_len);
 }
 
 static CK_RV
@@ -3307,8 +3313,8 @@ base_C_DecryptMessageNext (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_DecryptMessageNext(session, parameter, parameter_len, ciphertext_part, ciphertext_part_len,
-                                           plaintext_part, plaintext_part_len, flags);
+	return funcs->C_DecryptMessageNext (session, parameter, parameter_len, ciphertext_part, ciphertext_part_len,
+	                                    plaintext_part, plaintext_part_len, flags);
 }
 
 static CK_RV
@@ -3319,7 +3325,7 @@ base_C_MessageDecryptFinal (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageDecryptFinal(session);
+	return funcs->C_MessageDecryptFinal (session);
 }
 
 static CK_RV
@@ -3332,7 +3338,7 @@ base_C_MessageSignInit (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageSignInit(session, mechanism, key);
+	return funcs->C_MessageSignInit (session, mechanism, key);
 }
 
 static CK_RV
@@ -3349,7 +3355,8 @@ base_C_SignMessage (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_SignMessage(session, parameter, parameter_len, data, data_len, signature, signature_len);
+	return funcs->C_SignMessage (session, parameter, parameter_len, data, data_len,
+	                             signature, signature_len);
 }
 
 static CK_RV
@@ -3362,7 +3369,7 @@ base_C_SignMessageBegin (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_SignMessageBegin(session, parameter, parameter_len);
+	return funcs->C_SignMessageBegin (session, parameter, parameter_len);
 }
 
 static CK_RV
@@ -3379,7 +3386,8 @@ base_C_SignMessageNext (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_SignMessageNext(session, parameter, parameter_len, data, data_len, signature, signature_len);
+	return funcs->C_SignMessageNext (session, parameter, parameter_len, data, data_len,
+	                                 signature, signature_len);
 }
 
 static CK_RV
@@ -3388,7 +3396,7 @@ base_C_MessageSignFinal (CK_X_FUNCTION_LIST *self,
 {
 	p11_virtual *virt = (p11_virtual *)self;
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
-	return funcs->C_MessageSignFinal(session);
+	return funcs->C_MessageSignFinal (session);
 }
 
 static CK_RV
@@ -3401,7 +3409,7 @@ base_C_MessageVerifyInit (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageVerifyInit(session, mechanism, key);
+	return funcs->C_MessageVerifyInit (session, mechanism, key);
 }
 
 static CK_RV
@@ -3418,7 +3426,8 @@ base_C_VerifyMessage (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_VerifyMessage(session, parameter, parameter_len, data, data_len, signature, signature_len);
+	return funcs->C_VerifyMessage (session, parameter, parameter_len, data, data_len,
+	                               signature, signature_len);
 }
 
 static CK_RV
@@ -3431,7 +3440,7 @@ base_C_VerifyMessageBegin (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_VerifyMessageBegin(session, parameter, parameter_len);
+	return funcs->C_VerifyMessageBegin (session, parameter, parameter_len);
 }
 
 static CK_RV
@@ -3448,8 +3457,8 @@ base_C_VerifyMessageNext (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_VerifyMessageNext(session, parameter, parameter_len, data, data_len,
-                                          signature, signature_len);
+	return funcs->C_VerifyMessageNext (session, parameter, parameter_len, data, data_len,
+	                                   signature, signature_len);
 }
 
 static CK_RV
@@ -3460,7 +3469,7 @@ base_C_MessageVerifyFinal (CK_X_FUNCTION_LIST *self,
 	CK_FUNCTION_LIST_3_0 *funcs = virt->lower_module;
 	if (funcs->version.major < 3)
 		return CKR_FUNCTION_NOT_SUPPORTED;
-	return funcs->C_MessageVerifyFinal(session);
+	return funcs->C_MessageVerifyFinal (session);
 }
 
 void
@@ -3481,7 +3490,7 @@ p11_virtual_init_version (p11_virtual *virt,
                           void *lower_module,
                           p11_destroyer lower_destroy)
 {
-	p11_virtual_init(virt, funcs, lower_module, lower_destroy);
+	p11_virtual_init (virt, funcs, lower_module, lower_destroy);
 	if (version)
 		virt->funcs.version = *version;
 }
@@ -4184,10 +4193,16 @@ p11_virtual_wrap_fixed (p11_virtual *virt,
 	for (i = 0; i < P11_VIRTUAL_MAX_FIXED; i++) {
 		if (fixed_closures[i] == NULL) {
 			Wrapper *wrapper;
+
 			wrapper = create_fixed_wrapper (virt, i, destroyer);
 			if (wrapper) {
+				CK_INTERFACE *interface;
+
 				result = &wrapper->bound;
 				fixed_closures[i] = result;
+				interface = create_fixed_interface (result);
+				return_val_if_fail (interface != NULL, NULL);
+				fixed_interfaces[i] = interface;
 			}
 			break;
 		}
@@ -4206,6 +4221,7 @@ p11_virtual_unwrap_fixed (CK_FUNCTION_LIST_PTR module)
 	for (i = 0; i < P11_VIRTUAL_MAX_FIXED; i++) {
 		if (fixed_closures[i] == (CK_FUNCTION_LIST_3_0 *)module) {
 			fixed_closures[i] = NULL;
+			free (fixed_interfaces[i]);
 			break;
 		}
 	}
@@ -4279,4 +4295,21 @@ create_fixed_wrapper (p11_virtual *virt,
        assert (wrapper->bound.C_GetInterfaceList != NULL);
        assert (wrapper->bound.C_GetInterface != NULL);
        return wrapper;
+}
+
+static CK_INTERFACE *
+create_fixed_interface (CK_FUNCTION_LIST_3_0_PTR functions)
+{
+	CK_INTERFACE *interface;
+
+	return_val_if_fail (functions != NULL, NULL);
+
+	interface = calloc (1, sizeof (CK_INTERFACE));
+	return_val_if_fail (interface != NULL, NULL);
+
+	interface->pFunctionList = functions;
+	interface->pInterfaceName = "PKCS 11";
+	interface->flags = 0;
+
+	return interface;
 }

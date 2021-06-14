@@ -104,12 +104,57 @@ proto_read_byte_buffer (p11_rpc_message *msg,
 }
 
 static CK_RV
+proto_read_byte_buffer_null (p11_rpc_message *msg,
+                             CK_BYTE_PTR *buffer,
+                             CK_ULONG **n_buffer)
+{
+	unsigned char valid;
+	uint32_t length;
+
+	assert (msg != NULL);
+	assert (buffer != NULL);
+	assert (n_buffer != NULL);
+	assert (msg->input != NULL);
+
+	/* Check that we're supposed to be reading this at this point */
+	assert (!msg->signature || p11_rpc_message_verify_part (msg, "fy"));
+
+	/* NULL is indicated with the first byte */
+	if (!p11_rpc_buffer_get_byte (msg->input, &msg->parsed, &valid))
+		return PARSE_ERROR;
+
+	if (!valid) {
+		*buffer = NULL;
+		*n_buffer = NULL;
+		return CKR_OK;
+	}
+
+	/* The number of ulongs there's room for on the other end */
+	if (!p11_rpc_buffer_get_uint32 (msg->input, &msg->parsed, &length))
+		return PARSE_ERROR;
+
+	**n_buffer = length;
+	*buffer = NULL;
+
+	/* If set to zero, then they just want the length */
+	if (length == 0)
+		return CKR_OK;
+
+	*buffer = p11_rpc_message_alloc_extra_array (msg, length, sizeof (CK_BYTE));
+	if (*buffer == NULL)
+		return CKR_DEVICE_MEMORY;
+
+	return CKR_OK;
+}
+
+static CK_RV
 proto_read_byte_array (p11_rpc_message *msg,
                        CK_BYTE_PTR *array,
                        CK_ULONG *n_array)
 {
 	const unsigned char *data;
 	unsigned char valid;
+	uint32_t len;
 	size_t n_data;
 
 	assert (msg != NULL);
@@ -123,8 +168,10 @@ proto_read_byte_array (p11_rpc_message *msg,
 		return PARSE_ERROR;
 
 	if (!valid) {
+		if (!p11_rpc_buffer_get_uint32 (msg->input, &msg->parsed, &len))
+			return PARSE_ERROR;
 		*array = NULL;
-		*n_array = 0;
+		*n_array = len;
 		return CKR_OK;
 	}
 
@@ -621,6 +668,10 @@ call_ready (p11_rpc_message *msg)
 
 #define IN_BYTE_BUFFER(buffer, buffer_len) \
 	_ret = proto_read_byte_buffer (msg, &buffer, &buffer_len); \
+	if (_ret != CKR_OK) goto _cleanup;
+
+#define IN_BYTE_BUFFER_NULL(buffer, buffer_len) \
+	_ret = proto_read_byte_buffer_null (msg, &buffer, &buffer_len); \
 	if (_ret != CKR_OK) goto _cleanup;
 
 #define IN_BYTE_ARRAY(buffer, buffer_len) \
@@ -2114,16 +2165,17 @@ rpc_C_SignMessageNext (CK_X_FUNCTION_LIST *self,
 	CK_BYTE_PTR data;
 	CK_ULONG data_len;
 	CK_BYTE_PTR signature;
-	CK_ULONG signature_len;
+	CK_ULONG signature_len_;
+	CK_ULONG_PTR signature_len = &signature_len_;
 
 	BEGIN_CALL (SignMessageNext);
 		IN_ULONG (session);
 		IN_BYTE_ARRAY (parameter, parameter_len);
 		IN_BYTE_ARRAY (data, data_len);
-		IN_BYTE_BUFFER (signature, signature_len);
+		IN_BYTE_BUFFER_NULL (signature, signature_len);
 	PROCESS_CALL ((self, session, (void *)parameter, parameter_len, data, data_len,
-	               signature, &signature_len));
-		OUT_BYTE_ARRAY (signature, signature_len);
+	               signature, signature_len));
+		OUT_BYTE_ARRAY (signature, signature_len ? *signature_len : 0);
 	END_CALL;
 }
 

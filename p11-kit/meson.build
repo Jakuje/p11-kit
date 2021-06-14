@@ -229,11 +229,14 @@ if get_option('test')
     'test-proxy3',
     'test-iter',
     'test-rpc',
+    'test-rpc3',
     'test-virtual',
     'test-managed',
     'test-log',
+    'test-log3',
     'test-filter',
-    'test-transport'
+    'test-transport',
+    'test-transport3'
   ]
 
   if host_system != 'windows'
@@ -280,6 +283,7 @@ if get_option('test')
                    'mock-one': ['mock-module-ep.c'],
                    'mock-v3-one': ['mock-module-v3-ep.c'],
                    'mock-two': ['mock-module-ep2.c'],
+                   'mock-v3-two': ['mock-module-v3-ep2.c'],
                    'mock-three': ['mock-module-ep.c'],
                    'mock-four': ['mock-module-ep.c'],
                    'mock-v3-four': ['mock-module-v3-ep.c'],

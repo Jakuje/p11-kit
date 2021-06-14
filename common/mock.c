@@ -94,7 +94,7 @@ typedef struct _Session {
 	CK_MECHANISM_TYPE crypto_mechanism;
 	CK_BBOOL crypto_final;
 	CK_MECHANISM_TYPE message_method;
-	CK_MECHANISM_PTR message_mechanism;
+	CK_MECHANISM message_mechanism;
 	CK_OBJECT_HANDLE message_key;
 	bool message_progress;
 
@@ -132,6 +132,7 @@ free_session (void *data)
 	if (sess) {
 		p11_dict_free (sess->objects);
 		p11_array_free (sess->matches);
+		free (sess->message_mechanism.pParameter);
 	}
 	free (sess);
 }
@@ -3951,7 +3952,7 @@ mock_C_LoginUser (CK_SESSION_HANDLE session,
 	if (strncmp ((char *)username, (char *)the_username, username_len) != 0)
 		return CKR_PIN_INCORRECT;
 
-	return mock_C_Login(session, user_type, pin, pin_len);
+	return mock_C_Login (session, user_type, pin, pin_len);
 }
 
 CK_RV
@@ -4032,7 +4033,7 @@ mock_C_MessageEncryptInit (CK_SESSION_HANDLE session,
 	if (sess->message_method != 0)
 		return CKR_OPERATION_ACTIVE;
 
-	rv = mock_C_EncryptInit(session, mechanism, key);
+	rv = mock_C_EncryptInit (session, mechanism, key);
 	if (rv != CKR_OK)
 		return rv;
 
@@ -4074,7 +4075,7 @@ mock_C_EncryptMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_ENCRYPT)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	if (parameter_len != 13 || memcmp(parameter, "encrypt-param", 13))
+	if (parameter_len != 13 || memcmp (parameter, "encrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	/* no AEAD */
@@ -4103,7 +4104,7 @@ mock_C_MessageEncryptFinal (CK_SESSION_HANDLE session)
 	sess->message_progress = false;
 
 	rv = mock_C_EncryptFinal (session, NULL, &len);
-	assert(len == 0);
+	assert (len == 0);
 	return rv;
 }
 
@@ -4120,7 +4121,7 @@ mock_C_EncryptMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	if (parameter_len != 13 || memcmp(parameter, "encrypt-param", 13))
+	if (parameter_len != 13 || memcmp (parameter, "encrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4130,8 +4131,8 @@ mock_C_EncryptMessageNext (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_ENCRYPT || !sess->message_progress)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	rv = mock_C_EncryptUpdate(session, plaintext_part, plaintext_part_len,
-	                          ciphertext_part, ciphertext_part_len);
+	rv = mock_C_EncryptUpdate (session, plaintext_part, plaintext_part_len,
+	                           ciphertext_part, ciphertext_part_len);
 	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE)
 		sess->message_progress = false;
 
@@ -4268,7 +4269,7 @@ mock_C_MessageDecryptInit (CK_SESSION_HANDLE session,
 	if (sess->message_method != 0)
 		return CKR_OPERATION_ACTIVE;
 
-	rv = mock_C_DecryptInit(session, mechanism, key);
+	rv = mock_C_DecryptInit (session, mechanism, key);
 	if (rv != CKR_OK)
 		return rv;
 
@@ -4310,7 +4311,7 @@ mock_C_DecryptMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_DECRYPT)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	if (parameter_len != 13 || memcmp(parameter, "decrypt-param", 13))
+	if (parameter_len != 13 || memcmp (parameter, "decrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	/* no AEAD */
@@ -4340,7 +4341,7 @@ mock_C_MessageDecryptFinal (CK_SESSION_HANDLE session)
 	sess->message_progress = false;
 
 	rv = mock_C_DecryptFinal (session, NULL, &len);
-	assert(len == 0);
+	assert (len == 0);
 	return rv;
 }
 
@@ -4357,7 +4358,7 @@ mock_C_DecryptMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	if (parameter_len != 13 || memcmp(parameter, "decrypt-param", 13))
+	if (parameter_len != 13 || memcmp (parameter, "decrypt-param", 13))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4367,8 +4368,8 @@ mock_C_DecryptMessageNext (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_DECRYPT || !sess->message_progress)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	rv = mock_C_DecryptUpdate(session, ciphertext_part, ciphertext_part_len,
-	                          plaintext_part, plaintext_part_len);
+	rv = mock_C_DecryptUpdate (session, ciphertext_part, ciphertext_part_len,
+	                           plaintext_part, plaintext_part_len);
 	if (rv == CKR_OK && flags & CKF_END_OF_MESSAGE)
 		sess->message_progress = false;
 
@@ -4505,12 +4506,17 @@ mock_C_MessageSignInit (CK_SESSION_HANDLE session,
 	if (sess->message_method != 0)
 		return CKR_OPERATION_ACTIVE;
 
-	rv = mock_C_SignInit(session, mechanism, key);
+	rv = mock_C_SignInit (session, mechanism, key);
 	if (rv != CKR_OK)
 		return rv;
 
 	sess->message_method = CKF_MESSAGE_SIGN;
-	sess->message_mechanism = mechanism;
+	free (sess->message_mechanism.pParameter);
+	sess->message_mechanism = *mechanism;
+	if (mechanism->pParameter != NULL) {
+		sess->message_mechanism.pParameter = memdup (mechanism->pParameter, mechanism->ulParameterLen);
+		sess->message_mechanism.ulParameterLen = mechanism->ulParameterLen;
+	}
 	sess->message_key = key;
 
 	return CKR_OK;
@@ -4548,12 +4554,12 @@ mock_C_SignMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_SIGN)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	if (parameter_len != 10 || memcmp(parameter, "sign-param", 10))
+	if (parameter_len != 10 || memcmp (parameter, "sign-param", 10))
 		return CKR_ARGUMENTS_BAD;
 
 	if (sess->hash_method != CKF_SIGN) {
 		/* The Final already terminates this mechanism */
-		rv = prefix_mechanism_init (session, CKF_SIGN, sess->message_mechanism, sess->message_key);
+		rv = prefix_mechanism_init (session, CKF_SIGN, &sess->message_mechanism, sess->message_key);
 		if (rv != CKR_OK)
 			return rv;
 	}
@@ -4575,7 +4581,7 @@ mock_C_SignMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	if (parameter_len != 10 || memcmp(parameter, "sign-param", 10))
+	if (parameter_len != 10 || memcmp (parameter, "sign-param", 10))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4591,7 +4597,7 @@ mock_C_SignMessageNext (CK_SESSION_HANDLE session,
 	}
 
 	if (signature_len != NULL) {
-		rv = mock_C_SignFinal(session, signature, signature_len);
+		rv = mock_C_SignFinal (session, signature, signature_len);
 		if (rv != CKR_BUFFER_TOO_SMALL && rv != CKR_OK)
 			sess->message_progress = false;
 	}
@@ -4734,12 +4740,18 @@ mock_C_MessageVerifyInit (CK_SESSION_HANDLE session,
 	if (sess->message_method != 0)
 		return CKR_OPERATION_ACTIVE;
 
-	rv = mock_C_VerifyInit(session, mechanism, key);
+	rv = mock_C_VerifyInit (session, mechanism, key);
 	if (rv != CKR_OK)
 		return rv;
 
 	sess->message_method = CKF_MESSAGE_VERIFY;
-	sess->message_mechanism = mechanism;
+	free (sess->message_mechanism.pParameter);
+	sess->message_mechanism = *mechanism;
+	if (mechanism->pParameter != NULL) {
+		sess->message_mechanism.pParameter = memdup (mechanism->pParameter, mechanism->ulParameterLen);
+		assert (sess->message_mechanism.pParameter != NULL);
+		sess->message_mechanism.ulParameterLen = mechanism->ulParameterLen;
+	}
 	sess->message_key = key;
 
 	return CKR_OK;
@@ -4777,12 +4789,12 @@ mock_C_VerifyMessageBegin (CK_SESSION_HANDLE session,
 	if (sess->message_method != CKF_MESSAGE_VERIFY)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	if (parameter_len != 12 || memcmp(parameter, "verify-param", 12))
+	if (parameter_len != 12 || memcmp (parameter, "verify-param", 12))
 		return CKR_ARGUMENTS_BAD;
 
 	if (sess->hash_method != CKF_VERIFY) {
 		/* The Final already terminates this mechanism */
-		rv = prefix_mechanism_init (session, CKF_VERIFY, sess->message_mechanism, sess->message_key);
+		rv = prefix_mechanism_init (session, CKF_VERIFY, &sess->message_mechanism, sess->message_key);
 		if (rv != CKR_OK)
 			return rv;
 	}
@@ -4804,7 +4816,7 @@ mock_C_VerifyMessageNext (CK_SESSION_HANDLE session,
 	Session *sess;
 	CK_RV rv;
 
-	if (parameter_len != 12 || memcmp(parameter, "verify-param", 12))
+	if (parameter_len != 12 || memcmp (parameter, "verify-param", 12))
 		return CKR_ARGUMENTS_BAD;
 
 	sess = p11_dict_get (the_sessions, handle_to_pointer (session));
@@ -4820,7 +4832,7 @@ mock_C_VerifyMessageNext (CK_SESSION_HANDLE session,
 	}
 
 	if (signature != NULL) {
-		rv = mock_C_VerifyFinal(session, signature, signature_len);
+		rv = mock_C_VerifyFinal (session, signature, signature_len);
 		if (rv != CKR_BUFFER_TOO_SMALL)
 			sess->message_progress = false;
 	}

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012 Stefan Walter
- * Copyright (c) 2021 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,8 +29,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  *
- * Authors: Stef Walter <stef@thewalter.net>
- *          Jakub Jelen <jjelen@redhat.com>
+ * Author: Stef Walter <stef@thewalter.net>
  */
 
 #include "config.h"
@@ -41,20 +39,9 @@
 
 #include "mock.h"
 
-#include <unistd.h>
+#include <stdio.h>
 #include <string.h>
 
-static pid_t init_pid;
-
-static CK_RV
-override_initialize (CK_VOID_PTR init_args)
-{
-	if (init_pid != getpid ())
-		return CKR_GENERAL_ERROR;
-	return mock_C_Initialize (init_args);
-}
-
-/* Present for backward compatibibility */
 #ifdef OS_WIN32
 __declspec(dllexport)
 #endif
@@ -65,8 +52,6 @@ C_GetFunctionList (CK_FUNCTION_LIST_PTR_PTR list)
 	mock_module.C_GetFunctionList = C_GetFunctionList;
 	if (list == NULL)
 		return CKR_ARGUMENTS_BAD;
-	init_pid = getpid ();
-	mock_module.C_Initialize = override_initialize;
 	*list = &mock_module;
 	return CKR_OK;
 }
@@ -74,7 +59,6 @@ C_GetFunctionList (CK_FUNCTION_LIST_PTR_PTR list)
 static void mock_initialize_interface (void)
 {
 	mock_module_init ();
-	mock_module_v3.C_Initialize = override_initialize;
 	mock_module_v3.C_GetFunctionList = C_GetFunctionList;
 	mock_module_v3.C_GetInterfaceList = C_GetInterfaceList;
 	mock_module_v3.C_GetInterface = C_GetInterface;

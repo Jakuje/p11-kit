@@ -1434,7 +1434,27 @@ static CK_RV \
 fixed ## fixed_index ## _C_GetInterfaceList (CK_INTERFACE_PTR pInterfacesList, \
                                              CK_ULONG_PTR pulCount) \
 { \
-	return CKR_GENERAL_ERROR; /* TODO implement */ \
+	CK_RV rv = CKR_OK; \
+\
+	if (pulCount == NULL_PTR) \
+		return CKR_ARGUMENTS_BAD; \
+\
+	if (pInterfacesList == NULL_PTR) { \
+		*pulCount = 1; \
+		return CKR_OK; \
+	} \
+\
+	if (*pulCount < 1) { \
+		*pulCount = 1; \
+		return CKR_BUFFER_TOO_SMALL; \
+	} \
+\
+	if (rv == CKR_OK) { \
+		memcpy (pInterfacesList, fixed_interfaces[fixed_index], sizeof(CK_INTERFACE)); \
+		*pulCount = 1; \
+	} \
+\
+	return rv; \
 } \
 \
 static CK_RV \
@@ -1443,7 +1463,26 @@ fixed ## fixed_index ## _C_GetInterface (CK_UTF8CHAR_PTR pInterfaceName, \
                                          CK_INTERFACE_PTR_PTR ppInterface, \
                                          CK_FLAGS flags) \
 { \
-	return CKR_GENERAL_ERROR; /* TODO implement */ \
+	CK_INTERFACE_PTR interface = fixed_interfaces[fixed_index]; \
+	CK_VERSION_PTR cmp_version = &fixed_closures[fixed_index]->version; \
+\
+	if (ppInterface == NULL_PTR) { \
+		return CKR_ARGUMENTS_BAD; \
+	} \
+\
+	if (pInterfaceName == NULL) { \
+		*ppInterface = interface; \
+		return CKR_OK; \
+	} \
+\
+	if (strcmp ((char *)pInterfaceName, interface->pInterfaceName) != 0 || \
+	    (pVersion != NULL && (pVersion->major != cmp_version->major || \
+	                          pVersion->minor != cmp_version->minor)) || \
+	    ((flags & interface->flags) != flags)) { \
+		return CKR_ARGUMENTS_BAD; \
+	} \
+	*ppInterface = interface; \
+	return CKR_OK; \
 } \
 \
 static CK_RV \
