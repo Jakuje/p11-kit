@@ -437,13 +437,13 @@ test_set_pin (void)
 	module = setup_mock_module (&session);
 
 	rv = (module->C_SetPIN) (0, (CK_UTF8CHAR_PTR)"booo", 4, (CK_UTF8CHAR_PTR)"TEST PIN", 8);
-	assert (rv == CKR_SESSION_HANDLE_INVALID);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	rv = (module->C_SetPIN) (session, (CK_UTF8CHAR_PTR)"booo", 4, (CK_UTF8CHAR_PTR)"TEST PIN", 8);
-	assert (rv == CKR_OK);
+	assert_num_eq (rv, CKR_OK);
 
 	rv = (module->C_SetPIN) (session, (CK_UTF8CHAR_PTR)"other", 5, (CK_UTF8CHAR_PTR)"OTHER", 5);
-	assert (rv == CKR_PIN_INCORRECT);
+	assert_num_eq (rv,  CKR_PIN_INCORRECT);
 
 	teardown_mock_module (module);
 }
@@ -486,19 +486,19 @@ test_login_logout (void)
 	module = setup_mock_module (&session);
 
 	rv = (module->C_Login) (0, CKU_USER, (CK_UTF8CHAR_PTR)"booo", 4);
-	assert (rv == CKR_SESSION_HANDLE_INVALID);
+	assert_num_eq (rv, CKR_SESSION_HANDLE_INVALID);
 
 	rv = (module->C_Login) (session, CKU_USER, (CK_UTF8CHAR_PTR)"bo", 2);
-	assert (rv == CKR_PIN_INCORRECT);
+	assert_num_eq (rv, CKR_PIN_INCORRECT);
 
 	rv = (module->C_Login) (session, CKU_USER, (CK_UTF8CHAR_PTR)"booo", 4);
-	assert (rv == CKR_OK);
+	assert_num_eq (rv, CKR_OK);
 
 	rv = (module->C_Logout) (session);
-	assert (rv == CKR_OK);
+	assert_num_eq (rv, CKR_OK);
 
 	rv = (module->C_Logout) (session);
-	assert (rv == CKR_USER_NOT_LOGGED_IN);
+	assert_num_eq (rv, CKR_USER_NOT_LOGGED_IN);
 
 	teardown_mock_module (module);
 }
